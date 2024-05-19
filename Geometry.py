@@ -76,6 +76,8 @@ class Geometry():
     # NACA 4 and 5 digits are built-in. 
     # custom airfoil must be manually added
     # it doesn't matter in the number of points of each txt file ins't the same
+    # all airfoil will be named "airfoil_{i}" where i stands for the index position in "airfoil_known" (from 0). ex: airfoil_0, airfoil_1 ... 
+    # delete .txt file manually to restart
     def gen_AF_txt(self):
 
         path_dir = self.airfoil_dir()
