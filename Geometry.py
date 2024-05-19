@@ -422,9 +422,6 @@ class Geometry():
         Z = np.column_stack(z)
         Y = np.column_stack(y)
 
-        #combined_data = np.column_stack((X.flatten(), Y.flatten(), Z.flatten()))
-        #np.savetxt('wing.txt', combined_data, fmt='%f', delimiter='\t')
-
         wing = pv.StructuredGrid(X, Y, Z)
         wing = wing.triangulate()
         pv.save_meshio('blade.stl', wing)
