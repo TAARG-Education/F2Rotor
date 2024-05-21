@@ -1,5 +1,5 @@
 """ 
-File: Geometry.py
+File: cad.py
 Author: Antonio Brunaccini
 Creation Date: May 19, 2024
 
@@ -12,7 +12,6 @@ The rest of the sections are obtained by interpolation.
 """
 
 #NOTE: REFERENCE FRAME: X (chordwise direction), Y (spanwise direction), Z (thickness direction)
-
 #NOTE: lengths are in meters, twists are in deg
 
 import numpy as np
@@ -21,6 +20,8 @@ from scipy.interpolate import interp1d
 import pyvista as pv
 import os
 import pandas as pd
+from scipy.interpolate import splprep, splev
+
 
 from math import cos, sin
 from math import atan
@@ -29,6 +30,7 @@ from math import pow
 from math import sqrt
 
 # INPUTS 
+# WARNING: hub(0) and tip(1) sections MUST be set. Extrapolation doesn't work well
 class Geometry():
 
     def __init__(self, R, r_hub, N, RPM, r_R_known, c_R_known, beta_known, beta75, airfoil_known, pitch):
@@ -45,8 +47,8 @@ class Geometry():
         self.airfoil_dir()
 
         # cubic interp adim radius-adim chord/twist (used in BEMT module)
-        self.fc = interp1d(self.r_R_known,self.c_R_known, kind='cubic', fill_value='extrapolate') 
-        self.fb = interp1d(self.r_R_known,self.beta_known, kind='cubic', fill_value='extrapolate')
+        self.fc = interp1d(self.r_R_known,self.c_R_known, kind='cubic', fill_value='none') 
+        self.fb = interp1d(self.r_R_known,self.beta_known, kind='cubic', fill_value='none')
 
 
     # this function return the twist distribution for a fixed twist at 75% span and
@@ -76,8 +78,6 @@ class Geometry():
     # NACA 4 and 5 digits are built-in. 
     # custom airfoil must be manually added
     # it doesn't matter in the number of points of each txt file ins't the same
-    # all airfoil will be named "airfoil_{i}" where i stands for the index position in "airfoil_known" (from 0). ex: airfoil_0, airfoil_1 ... 
-    # delete .txt file manually to restart
     def gen_AF_txt(self):
 
         path_dir = self.airfoil_dir()
@@ -88,7 +88,7 @@ class Geometry():
 
                 AF = self.naca4(airfoil, n=64)
                 df = pd.DataFrame(AF, columns=['x', 'y'])
-                name = f"airfoil_{i}.txt"
+                name = f"airfoil_{i+1}.txt"
                 path_file = os.path.join(path_dir, name)
                 with open(path_file, 'w') as file:
                     file.write(f"NACA {airfoil}\n")
@@ -100,7 +100,7 @@ class Geometry():
 
                 AF = self.naca5(airfoil, n=64)
                 df = pd.DataFrame(AF, columns=['x', 'y'])
-                name = f"airfoil_{i}.txt"
+                name = f"airfoil_{i+1}.txt"
                 path_file = os.path.join(path_dir, name)
                 with open(path_file, 'w') as file:
                     file.write(f"NACA {airfoil}\n")
@@ -108,7 +108,7 @@ class Geometry():
                         file.write(f"{row['x']:.6f} {row['y']:.6f}\n")
                            
             elif airfoil.lower() == 'custom':
-                print(f"you have to insert airfoil_{i} manually")
+                print(f"you have to insert airfoil_{i+1} manually")
 
 
 
@@ -305,26 +305,22 @@ class Geometry():
     
     # returns the coordinates of each airfoil on a common n number of points so as to give freedom on the input txt
     # needed for interpolation.
+    
     def adapt_AF_points(self, AF, n):
 
-        a = int(len(AF[:,0])/2 +1)
+        N=n//2
 
-        xa = np.linspace(0,pi,n+1)
-        x = [(0.5*(1.0-cos(xx))) for xx in xa]  
-        xx = x[::-1]
-        f_interpolate = interp1d(AF[0:a,0], AF[0:a,1], kind='cubic')
-        zz = f_interpolate(xx)
-        AF1 = np.vstack((xx, zz)).T
+        x1 = 0.25 * (1 - np.cos(np.linspace(0, np.pi, N)))
+        x2 = 0.5 + 0.25 * (1 - np.cos(np.linspace(0, np.pi, N)))
+        x = np.hstack((x1,x2))
 
-        xx = x
-        f_interpolate = interp1d(AF[a-1:,0], AF[a-1:,1], kind='cubic')
-        zz = f_interpolate(xx)
-        AF2 = np.vstack((xx, zz)).T
-
-        AF = np.vstack((AF1, AF2[1:]))
+        pts = AF
+        tck, u = splprep(pts.T, u=None, s=0.0, per=1) 
+        u_new = x
+        x_new, y_new = splev(u_new, tck, der=0)
+        AF = np.column_stack((x_new, y_new))
 
         return AF
-
 
     # SPAN AIRFOIL FUNCTION
     # returns the X and Z co-ordinates at an arbitrary y station of the span using 1D cubic interpolation along the two directions.
@@ -335,9 +331,10 @@ class Geometry():
     # 4) interpolates
     # AF_xz = two column array (X and Z)
     # y_query = station to which interpolation is requested (dimensional)
+    # n MUST be an even number (needed for other operations)
     def AF_span_interp(self,y_query):
 
-        n = 100
+        n = 240
 
         x = []
         z = []
@@ -384,18 +381,32 @@ class Geometry():
         for i in range(npoints):
 
             xx = x[i,:]
-            f=interp1d(y, xx, kind = 'cubic', fill_value='extrapolate')
+            f=interp1d(y, xx, kind = 'cubic', fill_value='none')
             xint=f(y_query)
             AFint[i,0]=xint
 
             zz = z[i,:]
-            f=interp1d(y, zz, kind = 'cubic', fill_value='extrapolate')
+            f=interp1d(y, zz, kind = 'cubic', fill_value='none')
             zint=f(y_query)
             AFint[i,1]=zint
             
         return AFint
-
     
+    # for a given span station, it return the max thickness 
+    def AF_max_tk(self,y_query):
+
+        AF = self.AF_span_interp(y_query)
+
+        half_len = len(AF) // 2
+
+        p1 = AF[:half_len]  
+        p2 = AF[-1:-half_len-1:-1]  
+
+        tk_max = max(np.sqrt(np.sum((p2 - p1) ** 2, axis=1)))
+
+        return tk_max
+
+
     # BLADE GENERATION FUNCTION
     # provides the visualization of the blade interpolating a 3D grid where X and Z are provided by generative functions and 
     # Y is a vector of unifrom spacing from hub radius to global radius.
@@ -423,6 +434,9 @@ class Geometry():
         X = np.column_stack(x)
         Z = np.column_stack(z)
         Y = np.column_stack(y)
+
+        #combined_data = np.column_stack((X.flatten(), Y.flatten(), Z.flatten()))
+        #np.savetxt('wing.txt', combined_data, fmt='%f', delimiter='\t')
 
         wing = pv.StructuredGrid(X, Y, Z)
         wing = wing.triangulate()
