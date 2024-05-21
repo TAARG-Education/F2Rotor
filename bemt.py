@@ -17,8 +17,6 @@
 import numpy as np
 from scipy.optimize import newton
 from ambiance import Atmosphere
-# import aero
-from modules import aero
 import os 
 
 
