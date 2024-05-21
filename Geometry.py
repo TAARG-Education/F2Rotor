@@ -334,7 +334,7 @@ class Geometry():
     # n MUST be an even number (needed for other operations)
     def AF_span_interp(self,y_query):
 
-        n = 240
+        n = 200
 
         x = []
         z = []
@@ -356,7 +356,7 @@ class Geometry():
             elif airfoil.lower() == 'custom':
 
                 path_dir = self.airfoil_dir()
-                name = f"airfoil_{i}.txt"
+                name = f"airfoil_{i+1}.txt"
                 path_file = os.path.join(path_dir, name)
                 if os.path.exists(path_file):
                     data = pd.read_csv(path_file, skiprows=1, delim_whitespace=True, header=None)
