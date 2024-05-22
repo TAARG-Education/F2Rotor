@@ -15,7 +15,6 @@
 #
 
 import numpy as np
-from scipy.optimize import newton
 from ambiance import Atmosphere
 import os 
 
@@ -53,8 +52,14 @@ def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
     
     # calculate solidity
     sigma = (geom.N*chord)/(np.pi*geom.R)
-    # evaluate aerodynamic parameters
-    cla, bo = aero.eval_lift_properties(Re_ref =1e+6 ,Re =Vr*chord/ni,M = Vr/a_sound, alpha_0_lift = np.deg2rad(0), Cl_alpha = 6.28)
+
+    # evaluate Lift curve slope and Alpha zero Lift
+    if aero.aero_method == 'xRotor':
+        cla, bo = aero.eval_lift_properties(M = Vr/a_sound, alpha_0_lift = np.deg2rad(0), Cl_alpha = 6.28)
+    elif aero.aero_method == 'xFoil':
+        cla, bo = aero.eval_lift_properties(Cl_database = aero.Cl_database, r_R = geom.r_R_known, x = x, M = Vr/a_sound)
+    else:
+        cla, bo = aero.eval_lift_properties(M = Vr/a_sound)
     
     # # twist correction
     # beta += bo
@@ -80,13 +85,21 @@ def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, 
     print("alpha:",np.rad2deg(alpha))
     
     ###############################################################################
-    ### AERODYNAMICS (CIRO AND DANIELE)
-    # calculate airfoil coefficients 
-    cl, cd = aero.eval_coeffs(Re_ref =1e+6 ,Re =Vr*chord/ni ,M = Vr/a_sound,AoA=alpha,
+    ### AERODYNAMICS
+    # calculate airfoil coefficients
+    if aero.aero_method == 'xRotor': 
+        cl, cd = aero.eval_coeffs(Re_ref =1e+6 ,Re =Vr*chord/ni ,M = Vr/a_sound,AoA=alpha,
                               alpha_0_lift = np.deg2rad(0), Cl_alpha = 6.28, 
                               Cl_alpha_stall = 0.100, Cl_max = 1.5, Cl_min = -0.5, Cl_incr_to_stall = 0.100,
-                              Cd_min = 0.0130, Cl_at_cd_min = 0.500, dCd_dCl2 = 0.004, Mach_crit = 0.8, Re_scaling_exp = -0.15,
-                              polar_filename = 'airfoil_polar.dat')
+                              Cd_min = 0.0130, Cl_at_cd_min = 0.500, dCd_dCl2 = 0.004, Mach_crit = 0.8, Re_scaling_exp = -0.15
+                              )
+        
+    elif aero.aero_method == 'xFoil':
+        cl, cd = aero.eval_coeffs(AoA = np.rad2deg(alpha), Re_ref = 1e+6, Re =Vr*chord/ni, M = Vr/a_sound, x = x, r_R = geom.r_R_known, Cl_database = aero.Cl_database, Cd_database = aero.Cd_database)
+ 
+    else:
+        cl, cd = aero.eval_coeffs(Re_ref =1e+6 ,Re =Vr*chord/ni ,M = Vr/a_sound,AoA=alpha)
+
  
     ###############################################################################
     
@@ -98,7 +111,7 @@ def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, 
                                                                 + (cd*np.cos(phi+alpha_i+dalpha_c+dalpha_t)))*dx
         
     
-    return delct, delcp, cl, cd
+    return delct, delcp
     
 def blade_performance(ct,cp,rho,Vinf,J,D,geom, Hub_Loss=True):
     
@@ -110,7 +123,7 @@ def blade_performance(ct,cp,rho,Vinf,J,D,geom, Hub_Loss=True):
     puse = thrust*Vinf
     eta = J*ct/cp
     
-    return ct,cp,thrust,pin,puse,eta
+    return ct,cp,eta
 
 
 ##########################################################################################################################################################
@@ -134,16 +147,16 @@ def BEMT_timp(z,J,dx,geom,aero, curvature=True, thickness=True):
         wa = Vr*alpha_i*np.cos(phi+alpha_i)
         
         # evaluate section performance 
-        delct, delcp, _, _ = section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
+        delct, delcp= section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
         ct += delct
         cp += delcp
         
         # print("x: {:.2f}, beta: {:.2f}, AoA: {:.2f}, chord: {:.2f}, ct: {:.2f}, cp: {:.2f}".format(x, geom.fb(x), np.rad2deg(alpha), chord, ct, cp))
     
     # evaluate blade performance
-    ct,cp,thrust,pin,puse,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
+    ct,cp,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
     
-    return ct,cp,thrust,pin,puse,eta,rho
+    return ct,cp,eta
 
 ##########################################################################################################################################################
 
@@ -178,16 +191,16 @@ def BEMT_tvorpd(z,J,dx,geom,aero,curvature=True, thickness=True):
         wa = Vr*alpha_i*np.cos(phi+alpha_i)
         
         # evaluate section performance 
-        delct, delcp, _, _ = section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
+        delct, delcp = section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
         ct += delct
         cp += delcp
         
         # print("x: {:.2f}, beta: {:.2f}, AoA: {:.2f}, chord: {:.2f}, ct: {:.2f}, cp: {:.2f}".format(x, geom.fb(x), np.rad2deg(alpha), chord, ct, cp))
     
     # evaluate blade performance
-    ct,cp,thrust,pin,puse,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
+    ct,cp,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
     
-    return ct,cp,thrust,pin,puse,eta,rho
+    return ct,cp,eta
 
 
 ##########################################################################################################################################################
@@ -199,8 +212,6 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=True):
 
     # start loop over blade sections
     cp, ct = 0.,0.
-    cl_values = []
-    cd_values = []
     for x in x_vec:
         # evaluate section characteristics
         sigma, chord, cla, Vr, phi, beta = section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero)
@@ -266,7 +277,6 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=True):
         wa = 0.5 * (np.sqrt(Vinf**2 + 4 * wt * (omega * x * geom.R - wt)) - Vinf)
         
         # Calcolo del valore esatto dell’alfa indotto
-        # Calcolo del valore esatto dell’alfa indotto
         alpha_i = np.arctan(wt / wa) - phi
         if (alpha_i<0):
             wt = wtsa
@@ -275,15 +285,13 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=True):
         
         
         # evaluate section performance 
-        delct, delcp, cl,cd = section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
-        cl_values.append(cl)
-        cd_values.append(cd)
+        delct, delcp= section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
         ct += delct
         cp += delcp
     
         # print("x: {:.2f}, beta: {:.2f}, AoA: {:.2f}, chord: {:.2f}, ct: {:.2f}, cp: {:.2f}".format(x, geom.fb(x), np.rad2deg(alpha), chord, ct, cp))
     
     # evaluate blade performance
-    ct,cp,thrust,pin,puse,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
+    ct,cp,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
     
-    return ct,cp,thrust,pin,puse,eta,rho,cl_values,cd_values
+    return ct,cp,eta
