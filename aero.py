@@ -13,8 +13,7 @@ Three methods are implemented for calculating the coefficients:
 - xFoil method which calls the xFoil software on the known stations and interpolates in order to obtain the aerodynamic 
   parameters for each station of the blade;
 
-- xRotor method, which uses xRotor aerodynamics by giving certain aerodynamic parameters as input.
-
+- xRotor method, which uses xRotor aerodynamics by giving synthetic aerodynamic parameters as input.
 
 """
 
