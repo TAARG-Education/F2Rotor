@@ -78,6 +78,8 @@ class Geometry():
     # NACA 4 and 5 digits are built-in. 
     # custom airfoil must be manually added
     # it doesn't matter in the number of points of each txt file ins't the same
+    # designed for AERO module
+
     def gen_AF_txt(self):
 
         path_dir = self.airfoil_dir()
@@ -393,6 +395,7 @@ class Geometry():
         return AFint
     
     # for a given span station, it return the max thickness 
+    # designed for BEMT module
     def AF_max_tk(self,y_query):
 
         AF = self.AF_span_interp(y_query)
