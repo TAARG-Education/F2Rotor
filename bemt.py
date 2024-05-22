@@ -61,9 +61,6 @@ def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
     else:
         cla, bo = aero.eval_lift_properties(M = Vr/a_sound)
     
-    # # twist correction
-    # beta += bo
-    
     return sigma, chord, cla, Vr, phi, beta
 
 def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature=True, thickness=True):
@@ -150,8 +147,6 @@ def BEMT_timp(z,J,dx,geom,aero, curvature=True, thickness=True):
         delct, delcp= section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
         ct += delct
         cp += delcp
-        
-        # print("x: {:.2f}, beta: {:.2f}, AoA: {:.2f}, chord: {:.2f}, ct: {:.2f}, cp: {:.2f}".format(x, geom.fb(x), np.rad2deg(alpha), chord, ct, cp))
     
     # evaluate blade performance
     ct,cp,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
@@ -194,8 +189,6 @@ def BEMT_tvorpd(z,J,dx,geom,aero,curvature=True, thickness=True):
         delct, delcp = section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
         ct += delct
         cp += delcp
-        
-        # print("x: {:.2f}, beta: {:.2f}, AoA: {:.2f}, chord: {:.2f}, ct: {:.2f}, cp: {:.2f}".format(x, geom.fb(x), np.rad2deg(alpha), chord, ct, cp))
     
     # evaluate blade performance
     ct,cp,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
@@ -273,10 +266,9 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=True):
                     break
                 wt -= y / dy
         
-        # Calcolo del valore esatto di wa
+        # calculate of exact values for wa and induced angle of attack (alpha_i)
         wa = 0.5 * (np.sqrt(Vinf**2 + 4 * wt * (omega * x * geom.R - wt)) - Vinf)
-        
-        # Calcolo del valore esatto dell’alfa indotto
+    
         alpha_i = np.arctan(wt / wa) - phi
         if (alpha_i<0):
             wt = wtsa
@@ -289,7 +281,6 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=True):
         ct += delct
         cp += delcp
     
-        # print("x: {:.2f}, beta: {:.2f}, AoA: {:.2f}, chord: {:.2f}, ct: {:.2f}, cp: {:.2f}".format(x, geom.fb(x), np.rad2deg(alpha), chord, ct, cp))
     
     # evaluate blade performance
     ct,cp,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
