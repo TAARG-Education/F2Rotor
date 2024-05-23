@@ -1,6 +1,6 @@
 import numpy as np
 
-def BEMT(Helicopter, V_infty):
+def BEMT_Hover(Helicopter, V_infty):
 
     """BEMT_Hover is a method that executes the Blade Element Momentum Theory with respect for an helicopter in hover or
         (or slow climbing) condition. It accepts as input some data of the helicopter's rotor and flight conditions,
