@@ -26,6 +26,15 @@ def BEMT(Helicopter, V_infty):
     dPcdr_bar: Incremental Power coefficient along the main rotor radius;
     FM: Figure of Merit;
     F_Prandtl: Prandtl correction function.
+
+
+    The theory behind this code can be found in: Renato Tognaccini - "Lezioni di aerodinamica dell'ala rotante -
+    Eliche rotori ed aeromotori con un'introduzione all'aerodinamica instazionaria" - a.a. 2023/2024 - vsn 2.04 -
+    Chapter 6 - Paragraphs 6.1 and 6.2 - pages 71 to 74
+
+    Author: Francesco Gervasio
+    Date: 23/05/2024
+    Version: 1.00
     """
 
     ## INPUT
