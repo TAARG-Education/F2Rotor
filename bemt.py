@@ -1,18 +1,26 @@
-# ########################## INPUT VARIABLES #####################################
-# input variables: 
-# CONDITION: height, Vinf, rpm, design pitch
-#
-# GEOMETRY: diameter, blades number
-#           hub radius, pitch
-#           calettamento distribution (as function)
-#           chord distribution (as function)
-#
-# METHOD: 1. momentum theory
-#         2. vortical theory and small disturbance
-#         3. vortical theory 
-#
-# AERO:  cl, cd for each section of the blade   
-#
+#xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#x Calculate the performance of a propeller using various methods:												                                                x
+#x         1. momentum theory																	                                                                x
+#x         2. vortical theory and small disturbance														                                                        x
+#x         3. vortical theory 																	                                                                x
+#x																				                                                                                x
+#x Reference: McCormick, B. W., (1967), "Aerodynamics of V/STOL Flight"												                                            x
+#x																				                                                                                x
+#x Input variables:																		                                                                        x
+#x z = height																			                                                                        x
+#x dx = Pitch to move along the blade (Alert: The pitch is dimensionless with dx/R where R is the radius at the tip.)						                    x
+#x J = advance ratio																		                                                                    x
+#x Geom: objects of the "geom" library 																                                                            x
+#x Aero: objects of the "Aero" library 																                                                            x
+#x																				                                                                                x
+#x Output variables:																		                                                                    x
+#x ct = thrust coefficient 																	                                                                    x
+#x cp = power coefficient																	                                                                    x
+#x																				                                                                                x
+#x Authors: Daniele Di Somma, Emanuele Viglietti.														                                                        x
+#x																				                                                                                x
+#x Version: 1.4.0																		                                                                        x
+#xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 import numpy as np
 from ambiance import Atmosphere
@@ -21,27 +29,29 @@ import os
 
 # utility functions
 def initialize_vars(z,geom,dx,J):
-    # start function
+    # define atmoshpere
     atmosphere = Atmosphere([z*1000])
     T, rho,mu,a_sound = atmosphere.temperature[0], atmosphere.density[0], atmosphere.dynamic_viscosity[0], atmosphere.speed_of_sound[0]
     ni = mu/rho
    
+    # diameter
     D = 2*geom.R
+    x_hub = geom.r_hub/geom.R      			# hub fraction in percentage of total blade radius
+    x_vec = np.arange(x_hub, 1+ dx/geom.R, dx/geom.R)   # blade sections
+    if x_vec[-1] >= 1: x_vec[-1] = 0.99
+    
+    # velocities
     omega = geom.RPM*2*np.pi/60    # rotational velocity
-    Vt = omega*geom.R        # tangential velocity
-
-    Vinf = 2*geom.R*geom.RPM*J/60
+    Vt = omega*geom.R              # tangential velocity
+    Vinf = 2*geom.R*geom.RPM*J/60  # asymptotic velocity
 
     lam = Vinf/Vt       # lambda
-
-    x_hub = geom.r_hub/geom.R      # hub fraction in percentage of total blade radius
-
-    x_vec = np.arange(x_hub, 1+ dx/geom.R, dx/geom.R)   #vector station
-    if x_vec[-1] >= 1: x_vec[-1] = 0.99
     
     return T,rho,ni,a_sound,D,omega,Vt,Vinf,lam,x_vec,x_hub
 
+
 def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
+
     beta = np.deg2rad(geom.fb(x))
     beta +=np.deg2rad(geom.pitch)
         
@@ -53,17 +63,28 @@ def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
     # calculate solidity
     sigma = (geom.N*chord)/(np.pi*geom.R)
 
-    # evaluate Lift curve slope and Alpha zero Lift
-    if aero.aero_method == 'xRotor':
-        cla, bo = aero.eval_lift_properties(M = Vr/a_sound, alpha_0_lift = np.deg2rad(0), Cl_alpha = 6.28)
-    elif aero.aero_method == 'xFoil':
+    # evaluate Lift curve slope and Alpha zero Lift using aero class object.
+    if aero.aero_method == 'flat_plate':
+        cla = 6.28
+        bo = 0
+    elif aero.aero_method == 'xRotor':
+        cla = aero.xrot_params['Cl_alpha']
+        bo = aero.xrot_params['alpha_0_lift']
+    else: 
         cla, bo = aero.eval_lift_properties(Cl_database = aero.Cl_database, r_R = geom.r_R_known, x = x, M = Vr/a_sound)
-    else:
-        cla, bo = aero.eval_lift_properties(M = Vr/a_sound)
-    
+
+    # Mach correction
+    if aero.M_corr:
+        cla/=(1-(Vr/a_sound)**2)**0.5
+
+    # twist correction
+    beta += bo
+
     return sigma, chord, cla, Vr, phi, beta
 
+
 def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature=True, thickness=True):
+    
     # curvature effect
     if curvature:
         dalpha_c = 0.25 * (np.arctan((Vinf + wa)/(omega*x*geom.R-2*wt)) - np.arctan((Vinf + wa)/(omega*x*geom.R)))
@@ -79,48 +100,31 @@ def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, 
    
     # calculate effective AoA
     alpha = beta - phi - alpha_i - dalpha_c - dalpha_t
-    print("alpha:",np.rad2deg(alpha))
     
-    ###############################################################################
-    ### AERODYNAMICS
-    # calculate airfoil coefficients
-    if aero.aero_method == 'xRotor': 
-        cl, cd = aero.eval_coeffs(Re_ref =1e+6 ,Re =Vr*chord/ni ,M = Vr/a_sound,AoA=alpha,
-                              alpha_0_lift = np.deg2rad(0), Cl_alpha = 6.28, 
-                              Cl_alpha_stall = 0.100, Cl_max = 1.5, Cl_min = -0.5, Cl_incr_to_stall = 0.100,
-                              Cd_min = 0.0130, Cl_at_cd_min = 0.500, dCd_dCl2 = 0.004, Mach_crit = 0.8, Re_scaling_exp = -0.15
-                              )
-        
-    elif aero.aero_method == 'xFoil':
-        cl, cd = aero.eval_coeffs(AoA = np.rad2deg(alpha), Re_ref = 1e+6, Re =Vr*chord/ni, M = Vr/a_sound, x = x, r_R = geom.r_R_known, Cl_database = aero.Cl_database, Cd_database = aero.Cd_database)
- 
-    else:
-        cl, cd = aero.eval_coeffs(Re_ref =1e+6 ,Re =Vr*chord/ni ,M = Vr/a_sound,AoA=alpha)
-
- 
-    ###############################################################################
+    # calculate airfoil coefficients using aero class object
+    if aero.aero_method == 'flat_plate':
+        cl, cd = aero.clcd_fp(Re_ref =1e+6 ,Re =Vr*chord/ni ,M = Vr/a_sound,AoA=alpha)
+    elif aero.aero_method == 'xRotor':
+        cl,cd = aero.clcd_xrot(Re_ref = 1e+6, Re = Vr*chord/ni, M = Vr/a_sound, AoA = alpha)
+    else: 
+        cl, cd = aero.clcd_xfoil(AoA = np.rad2deg(alpha), Re_ref = 1e+6, Re = Vr*chord/ni, f = -0.4, M = Vr/a_sound, 
+                                 x = x, r_R = geom.r_R_known, Cl_database = aero.Cl_database, Cd_database = aero.Cd_database)
     
-    ## PERFORMANCE ##
+    # calculate section contribute of ct and cp
     delct = (np.pi/8)*((J**2) + ((np.pi*x)**2))*sigma*((cl*np.cos(phi+alpha_i+dalpha_c+dalpha_t))
                                                     - (cd*np.sin(phi+alpha_i+dalpha_c+dalpha_t)))*dx
         
     delcp = (np.pi/8)*(np.pi*x)*((J**2)+((np.pi*x)**2))*sigma*((cl*np.sin(phi+alpha_i+dalpha_c+dalpha_t))
                                                                 + (cd*np.cos(phi+alpha_i+dalpha_c+dalpha_t)))*dx
         
-    
     return delct, delcp
-    
-def blade_performance(ct,cp,rho,Vinf,J,D,geom, Hub_Loss=True):
-    
-    # hub loss
-    if Hub_Loss: ct -= 0.5*np.pi*((geom.r_hub*J)**3)/(D**2)
 
-    thrust = ct*rho*((geom.RPM/60)**2)*D**4
-    pin = cp*rho*((geom.RPM/60)**3)*D**5
-    puse = thrust*Vinf
-    eta = J*ct/cp
     
-    return ct,cp,eta
+def hub_loss(ct,J,D,geom):
+    # hub loss
+    ct -= 0.5*np.pi*((geom.r_hub*J)**3)/(D**2)
+    
+    return ct
 
 
 ##########################################################################################################################################################
@@ -149,9 +153,9 @@ def BEMT_timp(z,J,dx,geom,aero, curvature=True, thickness=True):
         cp += delcp
     
     # evaluate blade performance
-    ct,cp,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
+    ct = hub_loss(ct,J,D,geom)
     
-    return ct,cp,eta
+    return ct,cp
 
 ##########################################################################################################################################################
 
@@ -191,10 +195,9 @@ def BEMT_tvorpd(z,J,dx,geom,aero,curvature=True, thickness=True):
         cp += delcp
     
     # evaluate blade performance
-    ct,cp,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
+    ct = hub_loss(ct,J,D,geom)
     
-    return ct,cp,eta
-
+    return ct,cp
 
 ##########################################################################################################################################################
 
@@ -235,7 +238,6 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=True):
         while i <= 100:
             test1 = Vinf**2 + 4 * wt * ((omega * geom.R * x) - wt)
             test2 = lam**2 +(4 * (wt / Vt) * (x - (wt / Vt)))
-            
             if test1 < 0 or test2 < 0:
                 wt = wtsa
                 wa = wasa
@@ -280,9 +282,8 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=True):
         delct, delcp= section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
         ct += delct
         cp += delcp
+    # hub loss correction for ct
+
+    ct = hub_loss(ct,J,D,geom)
     
-    
-    # evaluate blade performance
-    ct,cp,eta = blade_performance(ct,cp,rho,Vinf,J,D,geom) 
-    
-    return ct,cp,eta
+    return ct,cp
