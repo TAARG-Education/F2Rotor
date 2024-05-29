@@ -1,21 +1,32 @@
 """ 
 File: aero.py
-Author: Daniele Trincone & Ciro Cuozzo
-Creation Date: May 21, 2024
+Authors: Ciro Cuozzo, Daniele Trincone
+Date: 28/05/2024
+Version: 1.03
 
 This code calculates the aerodynamic parameters of a chosen station on the blade through a Python class.
 Within the class there are functions capable of calculating the Cl_alpha, the alpha_zl, the Cl and the Cd for any 
 chosen station.
 Three methods are implemented for calculating the coefficients:
 
-- Flatplate method where the aerodynamics is given by Cl = Cl_alpha * alpha with Cl_alpha = 2*pi, and Cd = 0.02;
+- Method '1': The aerodynamics is given by Cl = Cl_alpha * (alpha - alpha_0_lift), limited by Cl_max and Cl_min and constant Cd;  
+With this method the class must be instantiated by providing a dictionary with the following parameters:
+'alpha_0_lift' (rad), 'Cl_alpha' (1/rad), 'Cl_max', 'Cl_min', 'Cd'
 
-- xFoil method which calls the xFoil software on the known stations and interpolates in order to obtain the aerodynamic 
-  parameters for each station of the blade;
+- Method '2': The aerodynamics is reconstructed through synthetic parameters. 
+With this method the class must be instantiated by providing a dictionary with the following parameters:
+'alpha_0_lift' (rad), 'Cl_alpha' (1/rad), 'Cl_alpha_stall' (1/rad), 'Cl_max', 'Cl_min' 'Cl_incr_to_stall', 'Cd_min', 'Cl_at_cd_min', 'dCd_dCl2', 'Mach_crit', 'Re_scaling_exp'
 
-- xRotor method, which uses xRotor aerodynamics by giving aerodynamic parameters as input.
+- Method '3': The aerodynamics is computed by interpolating on a response surface generated using xFoil. 
+The independant variables are the section and the AoA, the dependant ones are Cl and Cd.
 
-
+    Input:
+    - aero_method: Int (1, 2 or 3), one of the 3 methods above specified;
+    - M_corr: Bool, if 'True' applies compressibility correction;
+    - Rey_corr: Bool, if 'True' applies Reynolds number correction;
+    - aero_params (Optional): Dictionary, must be provided for methods '1' and '2'. Dictionary with the necessary parameters specified above;
+    - alpha_vec_xFoil (Optional): List, must be provided for method '3'. List of desired AoAs to perform xFoil analysis.
+    
 """
 
 ## The class must have, as attributes, the Alpha0lift, the Clalpha, the Cl and Cd at the particular lift coefficient.
@@ -24,23 +35,38 @@ import subprocess
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-from ambiance import Atmosphere
-from scipy.interpolate import interp1d, interp2d
-import shutil
+from scipy.interpolate import interp2d
 
 os.system('cls')
 
 class Aerodynamics():
-    def __init__(self, aero_method, alpha_vec_xFoil = None, M_corr = False, Rey_corr = False, xrot_params = None):
+    def __init__(self, aero_method, M_corr = True, Rey_corr = True, aero_params = None, alpha_vec_xFoil = None):
         self.aero_method = aero_method
         self.M_corr = M_corr
         self.Rey_corr = Rey_corr
-        if self.aero_method == 'xFoil':
+        if self.aero_method == 1 or self.aero_method == 2:
+            self.aero_params = aero_params
+        else:
             self.alpha_vec = alpha_vec_xFoil
-        elif self.aero_method == 'xRotor':
-            self.xrot_params = xrot_params      # Dictionary
 
-    def aero_database_generator(self, Re_ref, airfoils_folder):
+    def aero_database_generator(self, Re_ref, airfoils_folder, r_R):
+        '''
+        This function generates a response surface Cl = Cl (r/R, alpha) using xFoil at the known sections using the AoAs assigned
+        from the user in the class initialization.
+
+        Input: 
+        - Re_ref: Reference Reynolds number (used for xFoil calculations);
+        - airfoils_folder: The folder in which the airfoils are stored;
+        - r_R: the sections assigned from the user.
+        
+        Output:
+        - f_cl: The interpolation function for 2D lift coefficient
+        - f_cd: The interpolation function for 2D drag coefficient
+        
+        Authors: Ciro Cuozzo, Daniele Trincone
+        Date: 28/05/2024
+        Version: 1.03
+        '''
         if not os.path.exists(airfoils_folder):
             print("airfoils_folder does not exist.")
             return None
@@ -48,47 +74,77 @@ class Aerodynamics():
         # Count .txt files in the airfoils folder
         file_coord = [file for file in os.listdir(airfoils_folder) if file.endswith('.txt')]
     
-        Cl_database = np.full((len(file_coord),len(self.alpha_vec)),np.nan)
-        Cd_database = np.full((len(file_coord),len(self.alpha_vec)),np.nan)
+        Cl_database = np.full((len(file_coord), len(self.alpha_vec)), np.nan)
+        Cd_database = np.full((len(file_coord), len(self.alpha_vec)), np.nan)
         for i in range(len(file_coord)):
             print(f'Currently generating aerodynamic database for airfoil {i+1}...')
             if os.path.exists(f'airfoil_polar{i+1}.dat'): os.remove(f'airfoil_polar{i+1}.dat')
             for alpha in self.alpha_vec:
-                self.xfoil_run(file_coord[i], Re_ref, alpha,i)
+                self.xfoil_run(file_coord[i], Re_ref, alpha, i)
 
-            polar_i=np.loadtxt(f'airfoil_polar{i+1}.dat',skiprows=12)
+            polar_i = np.loadtxt(f'airfoil_polar{i+1}.dat', skiprows=12)
             Cl_database[i,:] = np.interp(self.alpha_vec, polar_i[:,0], polar_i[:,1]) # Constant extrapolation
             Cd_database[i,:] = np.interp(self.alpha_vec, polar_i[:,0], polar_i[:,2]) # Constant extrapolation
-
-            self.Cl_database = Cl_database      # Useful in the main for having everything condensed in the object
-            self.Cd_database = Cd_database
-        return Cl_database, Cd_database
+            
+        f_cl = interp2d(self.alpha_vec, r_R, Cl_database, kind='linear')
+        f_cd = interp2d(self.alpha_vec, r_R, Cd_database, kind='linear')
+        self.f_cl = f_cl
+        self.f_cd = f_cd
+        return f_cl, f_cd 
     
-    def eval_lift_properties(self, Cl_database = None, r_R = None, x = None, 
-                             M = None,
-                             alpha_0_lift = None, 
-                             Cl_alpha = None
-                             ):
-        """Function to evaluate alpha_0_lift and Cl_alpha from either the flat plate model or the xFoil polar:"""
+    def eval_lift_properties(self, x, M):
+        '''
+        This function evaluates Cl_alpha and alpha_zero lift of the airfoil at section 'x' and Mach number 'M'
+        The evaluation is performed interpolating on the grid defined in 'aero_database generator'.
 
-        f_cl = interp2d(self.alpha_vec,r_R, Cl_database, kind='linear')
+        Input:
+        - x: the query r/R;
+        - M: Mach number.
+        
+        Output:
+        - Cl_alpha (1/rad)
+        - alpha_0_lift (rad)
+        
+        Authors: Ciro Cuozzo, Daniele Trincone
+        Date: 28/05/2024
+        Version: 1.03
+        '''
+
         # Points to interpolate
-        Cl_alpha = (f_cl(2, x)[0] - f_cl(-2, x)[0])/(2-(-2))
+        Cl_alpha = (self.f_cl(2, x)[0] - self.f_cl(-2, x)[0])/(2-(-2))
         # Interpolation on 0
         Cl = []
-        alpha_0_lift_vec_interp = np.linspace(-6,6,10)      # Auxiliary AoA list to estimate alpha zero lift
+        alpha_0_lift_vec_interp = np.linspace(-6,6,10)
         for alpha in alpha_0_lift_vec_interp:
-            Cl.append(f_cl(alpha, x)[0])
+            Cl.append(self.f_cl(alpha, x)[0])
     
         alpha_0_lift = np.interp(0, Cl, alpha_0_lift_vec_interp)                                                          # deg
-        
+        if self.M_corr:
+            Cl_alpha /= (1-M**2)**0.5
         return np.rad2deg(Cl_alpha), np.deg2rad(alpha_0_lift)                                                 # Cl_alpha in 1/rad, alpha_0_lift in rad    
     
-    def clcd_fp(self, AoA, Re_ref, Re, M):
-        Cl_alpha = 2*math.pi
-        lift_coeff = min(Cl_alpha*AoA/math.sqrt(1-M**2), 1.5)     
-        lift_coeff = max(lift_coeff, -1.5)      # using Cl_alpha = 2pi, stall at Cl = 1.5
-        drag_coeff = 0.0200                                         # Default
+    def clcd1(self, AoA, Re_ref, Re, M):
+        '''
+        This function evaluates lift coefficient and drag coefficient using the aerodynamics method '1'. 
+        Further details in the aerodynamics class.
+
+        Input:
+        - AoA: Section angle of attack (rad);
+        - Re_ref: Reference Reynolds number;
+        - Re: Reynolds number;
+        - M: Mach number;
+        
+        Output:
+        - lift_coeff: Section lift coefficient
+        - drag_coeff: Section drag coefficient
+        
+        Authors: Ciro Cuozzo, Daniele Trincone
+        Date: 28/05/2024
+        Version: 1.03
+        '''
+        lift_coeff = min(self.aero_params['Cl_alpha']*(AoA - self.aero_params['alpha_0_lift'])/math.sqrt(1-M**2), self.aero_params['Cl_max'])     
+        lift_coeff = max(lift_coeff, self.aero_params['Cl_min'])      # using Cl_alpha = 2pi, stall at Cl = 1.5
+        drag_coeff = self.aero_params['Cd']                                        # Default
         if Re < 1e+5:
             f = -0.4                                    # Empirical factor for Reynolds number correction
         elif Re >= 1e+5 and Re < 1e+6:
@@ -101,71 +157,109 @@ class Aerodynamics():
             lift_coeff /=  math.sqrt(1-M**2)  
         return lift_coeff, drag_coeff
     
-    def clcd_xrot(self, AoA, Re_ref, Re, M):
+    def clcd2(self, AoA, Re_ref, Re, M):
+        '''
+        This function evaluates lift coefficient and drag coefficient using the aerodynamics method '2'. 
+        Further details in the aerodynamics class.
+
+        Input:
+        - AoA: Section angle of attack (rad);
+        - Re_ref: Reference Reynolds number;
+        - Re: Reynolds number;
+        - M: Mach number;
+        
+        Output:
+        - lift_coeff: Section lift coefficient
+        - drag_coeff: Section drag coefficient
+        
+        Authors: Ciro Cuozzo, Daniele Trincone
+        Date: 28/05/2024
+        Version: 1.03
+        '''
         CDMSTALL  =  0.1000
         CDMFACTOR = 10.0
         CLMFACTOR =  0.25
         MEXP      =  3.0
         CDMDD     =  0.0020
         PG = 1/math.sqrt(1-M**2)
-        lift_coeff = self.xrot_params['Cl_alpha'] * PG * (AoA - self.xrot_params['alpha_0_lift'])
+        lift_coeff = self.aero_params['Cl_alpha'] * (AoA - self.aero_params['alpha_0_lift'])
+        if self.M_corr:
+            lift_coeff *= PG
 
         # --- Effective CLmax is limited by Mach effects ---
 
         DMSTALL = (CDMSTALL / CDMFACTOR) ** (1.0 / MEXP)
-        CLMAXM = max(0.0, (self.xrot_params['Mach_crit'] + DMSTALL - M) / CLMFACTOR) + self.xrot_params['Cl_at_cd_min']
-        CLMAX = min(self.xrot_params['Cl_max'], CLMAXM)
-        CLMINM = min(0.0, -(self.xrot_params['Mach_crit'] + DMSTALL - M) / CLMFACTOR) + self.xrot_params['Cl_at_cd_min']
-        CLMIN = max(self.xrot_params['Cl_min'], CLMINM)
+        CLMAXM = max(0.0, (self.aero_params['Mach_crit'] + DMSTALL - M) / CLMFACTOR) + self.aero_params['Cl_at_cd_min']
+        CLMAX = min(self.aero_params['Cl_max'], CLMAXM)
+        CLMINM = min(0.0, -(self.aero_params['Mach_crit'] + DMSTALL - M) / CLMFACTOR) + self.aero_params['Cl_at_cd_min']
+        CLMIN = max(self.aero_params['Cl_min'], CLMINM)
 
         # --- CL limiter function (turns on after +-stall) ---
 
-        ECMAX = math.exp(min(200.0, float((lift_coeff - CLMAX) / self.xrot_params['Cl_incr_to_stall'])))
-        ECMIN = math.exp(min(200.0, float((CLMIN - lift_coeff) / self.xrot_params['Cl_incr_to_stall'])))
-        CLLIM = self.xrot_params['Cl_incr_to_stall'] * math.log((1.0 + ECMAX) / (1.0 + ECMIN))
+        ECMAX = math.exp(min(200.0, float((lift_coeff - CLMAX) / self.aero_params['Cl_incr_to_stall'])))
+        ECMIN = math.exp(min(200.0, float((CLMIN - lift_coeff) / self.aero_params['Cl_incr_to_stall'])))
+        CLLIM = self.aero_params['Cl_incr_to_stall'] * math.log((1.0 + ECMAX) / (1.0 + ECMIN))
 
         # --- Subtract off a (nearly unity) fraction of the limited CL function ---
 
-        FSTALL = self.xrot_params['Cl_alpha_stall'] / self.xrot_params['Cl_alpha']
+        FSTALL = self.aero_params['Cl_alpha_stall'] / self.aero_params['Cl_alpha']
         lift_coeff = lift_coeff - (1.0 - FSTALL) * CLLIM
 
         # ------------------------- Drag coefficient --------------------------#
         if Re <= 0:
             RCORR = 1.0
         else:
-            RCORR = (Re / Re_ref) ** self.xrot_params['Re_scaling_exp']
+            RCORR = (Re / Re_ref) ** self.aero_params['Re_scaling_exp']
         # --- Drag parabolic in the linear lift range ---
-
-        drag_coeff = (self.xrot_params['Cd_min'] + self.xrot_params['dCd_dCl2'] * (lift_coeff - self.xrot_params['Cl_at_cd_min']) ** 2) * RCORR
+        drag_coeff = (self.aero_params['Cd_min'] + self.aero_params['dCd_dCl2'] * (lift_coeff - self.aero_params['Cl_at_cd_min']) ** 2)
+        if self.Rey_corr:
+            drag_coeff*= RCORR
 
         # --- Post Stall Drag ---
 
-        FSTALL = self.xrot_params['Cl_alpha_stall'] / self.xrot_params['Cl_alpha']
-        DCDX = (1.0 - FSTALL) * CLLIM / (PG * self.xrot_params['Cl_alpha'])
+        FSTALL = self.aero_params['Cl_alpha_stall'] / self.aero_params['Cl_alpha']
+        DCDX = (1.0 - FSTALL) * CLLIM / (PG * self.aero_params['Cl_alpha'])
         DCD = 2.0 * DCDX ** 2
 
         # --- Compressibility Drag ---
 
         DMDD = (CDMDD / CDMFACTOR) ** (1.0 / MEXP)
-        CRITMACH = self.xrot_params['Mach_crit'] - CLMFACTOR * abs(lift_coeff - self.xrot_params['Cl_at_cd_min']) - DMDD       
+        CRITMACH = self.aero_params['Mach_crit'] - CLMFACTOR * abs(lift_coeff - self.aero_params['Cl_at_cd_min']) - DMDD       
         if M < CRITMACH:
             CDC = 0.0
         else:
             CDC = CDMFACTOR * (M - CRITMACH) ** MEXP
 
-        FAC = 1.0     
+        FAC = 1.0
+        # FAC = PG     
 
         # Total drag terms
         drag_coeff = FAC * drag_coeff + DCD + CDC
         
         return lift_coeff, drag_coeff
 
-    def clcd_xfoil(self, AoA, Re_ref, Re, f, M, x = None, r_R = None, Cl_database = None, Cd_database = None):
-        f_cl = interp2d(self.alpha_vec, r_R, Cl_database, kind='linear')
-        f_cd = interp2d(self.alpha_vec, r_R, Cd_database, kind='linear')
+    def clcd3(self, AoA, Re_ref, Re, M, x):
+        '''
+        This function evaluates lift coefficient and drag coefficient using the aerodynamics method '3'. 
+        Further details in the aerodynamics class.
+
+        Input:
+        - AoA: Section angle of attack (rad);
+        - Re_ref: Reference Reynolds number;
+        - Re: Reynolds number;
+        - M: Mach number;
+        
+        Output:
+        - lift_coeff: Section lift coefficient
+        - drag_coeff: Section drag coefficient
+        
+        Authors: Ciro Cuozzo, Daniele Trincone
+        Date: 28/05/2024
+        Version: 1.03
+        '''
         # Points to interpolate
-        lift_coeff = f_cl(AoA, x)[0]
-        drag_coeff = f_cd(AoA, x)[0]
+        lift_coeff = self.f_cl(AoA, x)[0]
+        drag_coeff = self.f_cd(AoA, x)[0]
 
         if Re < 1e+5:
             f = -0.4                                    # Empirical factor for Reynolds number correction
@@ -226,6 +320,8 @@ class Aerodynamics():
         except subprocess.CalledProcessError as e:
             print('Xfoil execution failed:', e)
             return [float('NaN')]
+        
+
         
 
 ####################### THE FOLLOWING PART IS JUST AN EXAMPLE OF HOW TO USE IT. IT MUST BE COMMENTED ########################
