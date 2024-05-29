@@ -1,33 +1,33 @@
-""" 
-File: aero.py
-Authors: Ciro Cuozzo, Daniele Trincone
-Date: 28/05/2024
-Version: 1.03
-
-This code calculates the aerodynamic parameters of a chosen station on the blade through a Python class.
-Within the class there are functions capable of calculating the Cl_alpha, the alpha_zl, the Cl and the Cd for any 
-chosen station.
-Three methods are implemented for calculating the coefficients:
-
-- Method '1': The aerodynamics is given by Cl = Cl_alpha * (alpha - alpha_0_lift), limited by Cl_max and Cl_min and constant Cd;  
-With this method the class must be instantiated by providing a dictionary with the following parameters:
-'alpha_0_lift' (rad), 'Cl_alpha' (1/rad), 'Cl_max', 'Cl_min', 'Cd'
-
-- Method '2': The aerodynamics is reconstructed through synthetic parameters. 
-With this method the class must be instantiated by providing a dictionary with the following parameters:
-'alpha_0_lift' (rad), 'Cl_alpha' (1/rad), 'Cl_alpha_stall' (1/rad), 'Cl_max', 'Cl_min' 'Cl_incr_to_stall', 'Cd_min', 'Cl_at_cd_min', 'dCd_dCl2', 'Mach_crit', 'Re_scaling_exp'
-
-- Method '3': The aerodynamics is computed by interpolating on a response surface generated using xFoil. 
-The independant variables are the section and the AoA, the dependant ones are Cl and Cd.
-
-    Input:
-    - aero_method: Int (1, 2 or 3), one of the 3 methods above specified;
-    - M_corr: Bool, if 'True' applies compressibility correction;
-    - Rey_corr: Bool, if 'True' applies Reynolds number correction;
-    - aero_params (Optional): Dictionary, must be provided for methods '1' and '2'. Dictionary with the necessary parameters specified above;
-    - alpha_vec_xFoil (Optional): List, must be provided for method '3'. List of desired AoAs to perform xFoil analysis.
-    
-"""
+#xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#x File: aero.py
+#x Authors: Ciro Cuozzo, Daniele Trincone
+#x Date: 28/05/2024
+#x Version: 1.03
+#x 
+#x This code calculates the aerodynamic parameters of a chosen station on the blade through a Python class.
+#x Within the class there are functions capable of calculating the Cl_alpha, the alpha_zl, the Cl and the Cd for any 
+#x chosen station.
+#x Three methods are implemented for calculating the coefficients:
+#x 
+#x - Method '1': The aerodynamics is given by Cl = Cl_alpha * (alpha - alpha_0_lift), limited by Cl_max and Cl_min and constant Cd;  
+#x   With this method the class must be instantiated by providing a dictionary with the following parameters:
+#x   'alpha_0_lift' (rad), 'Cl_alpha' (1/rad), 'Cl_max', 'Cl_min', 'Cd'
+#x 
+#x - Method '2': The aerodynamics is reconstructed through synthetic parameters. 
+#x   With this method the class must be instantiated by providing a dictionary with the following parameters:
+#x   'alpha_0_lift' (rad), 'Cl_alpha' (1/rad), 'Cl_alpha_stall' (1/rad), 'Cl_max', 'Cl_min' 'Cl_incr_to_stall', 'Cd_min', 'Cl_at_cd_min', 'dCd_dCl2', 'Mach_crit', 'Re_scaling_exp'
+#x 
+#x - Method '3': The aerodynamics is computed by interpolating on a response surface generated using xFoil. 
+#x   The independant variables are the section and the AoA, the dependant ones are Cl and Cd.
+#x 
+#x   Input to instantiate the class:
+#x   - aero_method: Int (1, 2 or 3), one of the 3 methods above specified;
+#x   - M_corr: Bool, if 'True' applies compressibility correction;
+#x   - Rey_corr: Bool, if 'True' applies Reynolds number correction;
+#x   - aero_params (Optional): Dictionary, must be provided for methods '1' and '2'. Dictionary with the necessary parameters specified above;
+#x   - alpha_vec_xFoil (Optional): List, must be provided for method '3'. List of desired AoAs to perform xFoil analysis.
+#x    
+#xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 
 import os
@@ -67,29 +67,29 @@ class Aerodynamics():
         Date: 28/05/2024
         Version: 1.03
         '''
-        if not os.path.exists(airfoils_folder):
+        if not os.path.exists(airfoils_folder): # Control on the folder containing airfoils
             print("airfoils_folder does not exist.")
             return None
         
-        # Count .txt files in the airfoils folder
-        file_coord = [file for file in os.listdir(airfoils_folder) if file.endswith('.txt')]
+        
+        file_coord = [file for file in os.listdir(airfoils_folder) if file.endswith('.txt')] # Count .txt files in the airfoils folder
     
-        Cl_database = np.full((len(file_coord), len(self.alpha_vec)), np.nan)
-        Cd_database = np.full((len(file_coord), len(self.alpha_vec)), np.nan)
+        Cl_database = np.full((len(file_coord), len(self.alpha_vec)), np.nan) # Generate the Cl database for interpolation
+        Cd_database = np.full((len(file_coord), len(self.alpha_vec)), np.nan) # Generate the Cd database for interpolation
         for i in range(len(file_coord)):
             print(f'Currently generating aerodynamic database for airfoil {i+1}...')
             if os.path.exists(f'airfoil_polar{i+1}.dat'): os.remove(f'airfoil_polar{i+1}.dat')
             for alpha in self.alpha_vec:
-                self.xfoil_run(file_coord[i], Re_ref, alpha, i)
+                self.xfoil_run(file_coord[i], Re_ref, alpha, i) # Run xFoil for each AoA in a for loop
 
             polar_i = np.loadtxt(f'airfoil_polar{i+1}.dat', skiprows=12)
             Cl_database[i,:] = np.interp(self.alpha_vec, polar_i[:,0], polar_i[:,1]) # Constant extrapolation
             Cd_database[i,:] = np.interp(self.alpha_vec, polar_i[:,0], polar_i[:,2]) # Constant extrapolation
             
-        f_cl = interp2d(self.alpha_vec, r_R, Cl_database, kind='linear')
-        f_cd = interp2d(self.alpha_vec, r_R, Cd_database, kind='linear')
-        self.f_cl = f_cl
-        self.f_cd = f_cd
+        f_cl = interp2d(self.alpha_vec, r_R, Cl_database, kind='linear') # Create the interpolation function for Cl
+        f_cd = interp2d(self.alpha_vec, r_R, Cd_database, kind='linear') # Create the interpolation function for Cd
+        self.f_cl = f_cl # Assign the Cl function to the class
+        self.f_cd = f_cd # Assign the Cd function to the class
         return f_cl, f_cd 
     
     def eval_lift_properties(self, x, M):
@@ -111,17 +111,17 @@ class Aerodynamics():
         '''
 
         # Points to interpolate
-        Cl_alpha = (self.f_cl(2, x)[0] - self.f_cl(-2, x)[0])/(2-(-2))
+        Cl_alpha = (self.f_cl(2, x)[0] - self.f_cl(-2, x)[0])/(2-(-2))   # Evaluate Cl alpha based on alpha = +-2°
         # Interpolation on 0
         Cl = []
-        alpha_0_lift_vec_interp = np.linspace(-6,6,10)
+        alpha_0_lift_vec_interp = np.linspace(-6,6,10) 
         for alpha in alpha_0_lift_vec_interp:
-            Cl.append(self.f_cl(alpha, x)[0])
+            Cl.append(self.f_cl(alpha, x)[0])  # Evaluate Cl at the predefined AoAs = +-2°
     
-        alpha_0_lift = np.interp(0, Cl, alpha_0_lift_vec_interp)                                                          # deg
+        alpha_0_lift = np.interp(0, Cl, alpha_0_lift_vec_interp)   # Evaluate alpha_0_lift by interpolating [deg]
         if self.M_corr:
-            Cl_alpha /= (1-M**2)**0.5
-        return np.rad2deg(Cl_alpha), np.deg2rad(alpha_0_lift)                                                 # Cl_alpha in 1/rad, alpha_0_lift in rad    
+            Cl_alpha /= (1-M**2)**0.5                              # Mach number correction
+        return np.rad2deg(Cl_alpha), np.deg2rad(alpha_0_lift)      # Cl_alpha in 1/rad, alpha_0_lift in rad    
     
     def clcd1(self, AoA, Re_ref, Re, M):
         '''
@@ -142,9 +142,9 @@ class Aerodynamics():
         Date: 28/05/2024
         Version: 1.03
         '''
-        lift_coeff = min(self.aero_params['Cl_alpha']*(AoA - self.aero_params['alpha_0_lift'])/math.sqrt(1-M**2), self.aero_params['Cl_max'])     
-        lift_coeff = max(lift_coeff, self.aero_params['Cl_min'])      # using Cl_alpha = 2pi, stall at Cl = 1.5
-        drag_coeff = self.aero_params['Cd']                                        # Default
+        lift_coeff = min(self.aero_params['Cl_alpha']*(AoA - self.aero_params['alpha_0_lift'])/math.sqrt(1-M**2), self.aero_params['Cl_max'])    # Positive Stall at Cl = Cl_max    
+        lift_coeff = max(lift_coeff, self.aero_params['Cl_min'])       # Negative Stall at Cl = Cl_min
+        drag_coeff = self.aero_params['Cd']                                        # Default Cd
         if Re < 1e+5:
             f = -0.4                                    # Empirical factor for Reynolds number correction
         elif Re >= 1e+5 and Re < 1e+6:
@@ -152,9 +152,9 @@ class Aerodynamics():
         else:
             f = -0.15
         if self.Rey_corr:
-            drag_coeff *= (Re/Re_ref)**f    
+            drag_coeff *= (Re/Re_ref)**f                # Empirical Reynolds number correction
         if self.M_corr:
-            lift_coeff /=  math.sqrt(1-M**2)  
+            lift_coeff /=  math.sqrt(1-M**2)            # Prandtl Glauert correction
         return lift_coeff, drag_coeff
     
     def clcd2(self, AoA, Re_ref, Re, M):
@@ -274,9 +274,24 @@ class Aerodynamics():
         return lift_coeff, drag_coeff
     
     def xfoil_run(self, file_coord, Re, alpha,  i, n_iter = 50, airfoil_folder = 'airfoil_input'):
-        """Function to call xFoil"""
-        #xfoil_path = 'airfoil_input/xfoil.exe'
-        #xfoil_path = os.path.join(airfoil_folder, 'xfoil.exe')
+        '''Function to run xFoil
+        'xfoil.exe' must be in the same folder as the main
+        Input:
+        - file_coord: Coordinate file;
+        - Re: Reynolds number used xFoil;
+        - alpha: Angle of Attack used in xFoil;
+        - i: index of the airfoil to save correct polars;
+        - n_iter: Number of iterations in xFoil;
+        - airfoil_folder: folder in which the airfoils are stored.
+        
+        Output:
+        - Generation of the file containing Cl, Cd, Cm... at each angle of attack given to xFoil.
+        
+        Authors: Ciro Cuozzo, Daniele Trincone
+        Date: 28/05/2024
+        Version: 1.03
+        '''
+
         xfoil_path = 'xfoil.exe'
         # Write xfoil command file
         XfoilCmd_fileName = 'Xfoil_cmd.inp'
