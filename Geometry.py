@@ -1,70 +1,94 @@
-""" 
-File: cad.py
-Author: Antonio Brunaccini
-Creation Date: May 19, 2024
-
-This code includes the geometrical parameters of the designed blade and some operational parameters within a python class.
-In addition, there are functions capable of manipulating the geometry and providing an example of the blade visualization.
-The generation of the geometry is based on the input of an arbitrary number of blade sections: chord adim, span adim, 
-twist and airfoil must be provided for the same section. Regarding airfoils, NACA 4 and 5 digit are directly implemented, but custom airfoil
-can be added manually. All input airfoil are reproduced in output as xFoil txt to be used in other functions. 
-The rest of the sections are obtained by interpolation.
-"""
-
-#NOTE: REFERENCE FRAME: X (chordwise direction), Y (spanwise direction), Z (thickness direction)
-#NOTE: lengths are in meters, twists are in deg
+#xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#x This code includes the geometrical parameters of the designed blade and some operational parameters within a python class.                                   x
+#x In addition, there are functions capable of manipulating the geometry and providing an example of the blade visualization.                                   x
+#x The generation of the geometry is based on the input of an arbitrary number of blade sections: chord adim, span adim,                                        x
+#x twist and airfoil must be provided for the same section. Regarding airfoils, NACA 4 and 5 digit are directly implemented, but custom airfoil                 x
+#x can be added manually. All input airfoil are reproduced in output as xFoil txt to be used in other functions.                                                x
+#x The rest of the sections are obtained by interpolation.																	                                    x
+#x		                                                                                                                                                        x
+#x  NOTE: REFERENCE FRAME: X (chordwise direction), Y (spanwise direction), Z (thickness direction), origin in the centre of the hub.                           x
+#x  NOTE: lengths are in meters, twists are in deg                                                                                                              x
+#x									                                                                                                                            x
+#x Input variables:	                                                                                                                                            x
+#x																	                                                                                            x
+#x R                =   global radius (float)                                                                                                                   x
+#x r_hub            =   hub radius (float)                                                                                                                      x
+#x N                =   number of blades (int)                                                                                                                  x
+#x RPM              =   round per minute (int)                                                                                                                  x
+#x r_R_known        =   known adimensional RADIUS in ascending order (array)                                                                                    x
+#x c_R_known        =   known adimensional CHORDS in ascending order (array)                                                                                    x
+#x beta_known       =   known TWIST in ascending order WITH RESPECT TO THE PROPELLER PLANE (array)                                                              x
+#x beta75           =   assigned nominal twist at 75% span (float)                                                                                              x
+#x pitch            =   blade pitch (float)															                                                            x
+#x airfoil_known    =   array containing airfoil info. It can include:                                                                                          x
+#x                      1) 4 digit NACA. ex: '0012'                                                                                                             x
+#x                      2) 5 digit NACA. ex: '23012'                                                                                                            x
+#x                      3) arbitrary airfoil. In this case in mandatory to type 'custom'                                                                        x
+#x																				                                                                                x
+#x																			                                                                                    x
+#x  WARNING 1:  hub(r_hub/R) and tip(1) sections MUST be set. Extrapolation doesn't work well.                                                                  x
+#x                                                                                                                                                              x
+#x  WARNING 2:  Only NACA airfoils are built-in generated. If you want to include CUSTOM airfoils you MUST  create                                              x
+#x              a direcotory called 'airfoil_input' in the same path you launch the script and manually insert the txt file in this directory.                  x
+#x              You also MUST rename the txt file as 'airfoil_i' where i indicstes the position in airfoil_known.                                               x
+#x              ex. if 4 station are assigned: airfoil_known = ['0012', '23012', 'custom', '2412'] so the custom airfoil must be airfoil_3                      x
+#x                                                                                                                                                              x
+#x                                                                                                                                                              x
+#x																				                                                                                x
+#x 																			                                                                                    x
+#x Author: Antonio Brunaccini.														                                                                            x
+#x																				                                                                                x
+#x Version: 1.2.0																		                                                                        x
+#xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, splprep, splev
 import pyvista as pv
 import os
 import pandas as pd
-from scipy.interpolate import splprep, splev
+from math import cos, sin, atan, pi, pow, sqrt
 
 
-from math import cos, sin
-from math import atan
-from math import pi
-from math import pow
-from math import sqrt
-
-# INPUTS 
-# WARNING: hub(0) and tip(1) sections MUST be set. Extrapolation doesn't work well
 class Geometry():
 
     def __init__(self, R, r_hub, N, RPM, r_R_known, c_R_known, beta_known, beta75, airfoil_known, pitch):
-        self.R = R                              # global radius (float)
-        self.r_hub = r_hub                      # hub radius (float)
-        self.N = N                              # number of blades (int)
-        self.RPM = RPM                          # round per minute (float)
-        self.r_R_known = r_R_known              # known adimensional RADIUS in ascending order (array)
-        self.c_R_known = c_R_known              # known adimensional CHORDS in ascending order (array)
-        self.beta_known = beta_known            # known TWIST in ascending order WITH RESPECT TO THE PROPELLER PLANE (array)
-        self.beta75 = beta75                    # assigned nominal twist at 75% span 
-        self.airfoil_known =  airfoil_known     # array containing NACA 4 digit airfoil as strings
-        self.pitch = pitch                      # blade pitch (float)
+        self.R = R                              
+        self.r_hub = r_hub                      
+        self.N = N                              
+        self.RPM = RPM                          
+        self.r_R_known = r_R_known              
+        self.c_R_known = c_R_known              
+        self.beta_known = beta_known            
+        self.beta75 = beta75                     
+        self.airfoil_known =  airfoil_known     
+        self.pitch = pitch                      
         self.airfoil_dir()
+        self.x, self.z = self.init_blade()
 
-        # cubic interp adim radius-adim chord/twist (used in BEMT module)
+        # utility functions
+        # fc,fb,fx,fz are all 1D interpolator generated when the Geometry class is defined. 
+        # They are used as tools for BEMT module (fc,fb) and blade geeneration (fx,fz)
         self.fc = interp1d(self.r_R_known,self.c_R_known, kind='cubic', fill_value='none') 
         self.fb = interp1d(self.r_R_known,self.beta_known, kind='cubic', fill_value='none')
+        self.fx = interp1d(self.R*self.r_R_known,self.x, kind='cubic', fill_value='none')
+        self.fz = interp1d(self.R*self.r_R_known,self.z, kind='cubic', fill_value='none')
 
 
-    # this function return the twist distribution for a fixed twist at 75% span and
-    # preserving the twist distribution function shape
-    def twist_rspct_75(self):
-
-        beta75_star = self.fb(0.75)
-        beta_known_sign_zero = self.beta_known - beta75_star
-        beta_known_sign = beta_known_sign_zero + self.beta75
-
-        return beta_known_sign
-
-
-    # creation of the directory where txt input are stored 
-    # (created in the same path where the code is located)
     def airfoil_dir(self):
+
+        '''
+        This function creates a directory called 'airfoil input' where airfoil (AF) coordinates text file are stored (Xfoil type).
+        
+        output:
+        - path_dir: it is the path of the directory, it can be used in another function to generate and store txt 
+
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
+
         name = 'airfoil_input'  
         dir = os.getcwd()
         path_dir = os.path.join(dir, name)
@@ -73,14 +97,98 @@ class Geometry():
 
         return path_dir
 
+    def init_blade(self):
+        '''
+        This function initialize the blade generation by creating airfoils (AF) imposed in airfoil_known.
+        NACA airfoils generation is built-in while custom airfoil must be manually insert
+        
+        output:
+        - x,z : multidimensional array containing x and z coordinates, for all assigned station (every column is a station)
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
 
-    # read the array "airfoil known" and generates the corresponding .txt coordinate file.
-    # NACA 4 and 5 digits are built-in. 
-    # custom airfoil must be manually added
-    # it doesn't matter in the number of points of each txt file ins't the same
-    # designed for AERO module
+        n = 200
 
+        x = []
+        z = []
+
+        if type(self.r_R_known) != 'array': self.r_R_known = np.array(self.r_R_known)
+
+        for i, airfoil in enumerate(self.airfoil_known):
+            
+            if airfoil.isdigit() and len(airfoil) == 4:
+
+                AF = self.naca4(airfoil)
+                AF = self.adapt_AF_points(AF, n)
+
+            elif airfoil.isdigit() and len(airfoil) == 5:
+
+                AF = self.naca5(airfoil)
+                AF = self.adapt_AF_points(AF, n)
+
+            elif airfoil.lower() == 'custom':
+
+                path_dir = self.airfoil_dir()
+                name = f"airfoil_{i+1}.txt"
+                path_file = os.path.join(path_dir, name)
+                if os.path.exists(path_file):
+                    data = pd.read_csv(path_file, skiprows=1, delim_whitespace=True, header=None)
+                    AF = data.to_numpy()
+                    AF = np.array(AF)
+                    AF = self.adapt_AF_points(AF, n)
+
+
+            AF = self.AF_scale(AF,self.R*self.c_R_known[i])
+            AF = self.AF_trasl(AF)
+            AF = self.AF_rot(AF,self.beta_known[i])
+
+            x.append(AF[:,0])
+            z.append(AF[:,1])
+
+        x = np.column_stack(x)
+        z = np.column_stack(z)
+
+        return x, z
+
+
+    def twist_rspct_75(self):
+        '''
+        This function returns the twist distribution for a given beta75 for an arbitrary beta distribution.
+        
+
+        input variables: 
+        - beta75: internally declared
+        
+        output:
+        - beta_known_sign: twist distribution with respect to adim radius and given blade nominal twist 
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
+
+        beta75_star = self.fb(0.75)
+        beta_known_sign_zero = self.beta_known - beta75_star
+        beta_known_sign = beta_known_sign_zero + self.beta75
+
+        return beta_known_sign
+    
+    
     def gen_AF_txt(self):
+        '''
+        This function generates NACA airfoil txt coordinate files and stores them in 'airfoil_input'. 
+        There is a warning for custom airfoil which have to be manually insert
+        
+        output:
+        - AF txt files in Xfoil format: one row header and tab space x and z coordinated for all remaining rows.
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
 
         path_dir = self.airfoil_dir()
 
@@ -114,13 +222,23 @@ class Geometry():
 
 
 
-    # NACA 4 DIGIT COORDINATE GENERATOR. 
-    #Two columns(X and Z) array as output
-    # number = 4 digit string. ex: '0012'
-    # n = number of points
-    # finite_TE -> for finite(true) or zero(false) thickness trailing edge
-    # half_cosine_spacing -> X spacing based on half cosine law (true) or uniform (false) 
     def naca4(self,number, n=240, finite_TE = False, half_cosine_spacing=True):
+        '''
+        This function generates two columns array containing x anz z coordinates of the input NACA 4-digit airfoil
+    
+        input variables: 
+        - number: 4 digits in a string. ex: '0012'
+        - n: number of points to be generated
+        - finite_TE: True if you want a closed trailing edge
+        - half_cosine_spacing:True for fitting law to improve leading and trailing edge resolution
+        
+        output:
+        - AF_xz: 2D column array containing coordinates. Every row describes a point 
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
         
         m = float(number[0])/100.0
         p = float(number[1])/10.0
@@ -183,13 +301,24 @@ class Geometry():
         return AF_xz
     
 
-    # NACA 5 DIGIT COORDINATE GENERATOR. 
-    #Two columns(X and Z) array as output
-    # number = 4 digit string. ex: '0012'
-    # n = number of points
-    # finite_TE -> for finite(true) or zero(false) thickness trailing edge
-    # half_cosine_spacing -> X spacing based on half cosine law (true) or uniform (false) 
+    
     def naca5(self, number, n=240, finite_TE = False, half_cosine_spacing = True):
+        '''
+        This function generates two columns array containing x anz z coordinates of the input NACA 5-digit airfoil
+    
+        input variables: 
+        - number: 5 digits in a string. ex: '23012'
+        - n: number of points to be generated
+        - finite_TE: True if you want a closed trailing edge
+        - half_cosine_spacing:True for fitting law to improve leading and trailing edge resolution
+        
+        output:
+        - AF_xz: 2D column array containing coordinates. Every row describes a point 
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
         
         naca1 = int(number[0])
         naca23 = int(number[1:3])
@@ -265,10 +394,21 @@ class Geometry():
         return AF_xz
 
 
-    # SCALE AIRFOIL FUNCTION
-    #AF_xz = two column array (X and Z)
-    #C = reference chord to which the airfoil is generated 
     def AF_scale(self,AF_xz,c):
+        '''
+        This function scale the airfoil according to the reference chord C (chord at which the airfoil is generated)
+    
+        input variables: 
+        - c = dimensional chord of the airfoil
+        - AF_xz = two column array containing airfoil coordinates
+        
+        output:
+        - AF_xz: 2D column array containing coordinates. Every row describes a point 
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
 
         C = 1                       
         AF_xz_scl = AF_xz * (c/C)
@@ -276,12 +416,23 @@ class Geometry():
         return AF_xz_scl
         
 
-    # TRASLATION AIRFOIL FUNCTION
-    #AF_xz = two column array (X and Z)
-    #COR = centre of rotation. Airfoil is traslated by COR to allineate airfoils' aerodynamic centres
-    #z_COR = COR height, default is zero (not true for non symmetric airfoils)
     def AF_trasl(self,AF_xz, z_COR=0):
-            
+        '''
+        This function translate the airfoil by applying a rotation matrix with respect to a Centre Of Rotation (COR)
+        It is needed to allineate airfoils' focuses and reduce hinge forces
+    
+        input variables: 
+        - AF_xz = two column array containing airfoil coordinates
+        - z_COR = height coordinate as DoF
+        
+        output:
+        - AF_xz: 2D column array containing coordinates. Every row describes a point 
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
+         
         chord = max(AF_xz[:,0]) - min(AF_xz[:,0])
         COR = (0.25*chord,z_COR)
         AF_xz_trasl = AF_xz - COR
@@ -289,11 +440,21 @@ class Geometry():
         return AF_xz_trasl
     
     
-    # ROTATION AIRFOIL FUNCTION
-    #AF_xz = two column array (X and Z)
-    #beta_query = twist angle of which the profile is rotated 
-
     def AF_rot(self,AF_xz,beta_query):
+        '''
+        This function rotates the airfoil by applying a rotation matrix.
+    
+        input variables: 
+        - AF_xz = two column array containing airfoil coordinates
+        - beta_query = twist angle of which the profile is rotated (deg)
+        
+        output:
+        - AF_xz: 2D column array containing coordinates. Every row describes a point 
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
 
         beta_query = -np.radians(beta_query)
 
@@ -309,6 +470,26 @@ class Geometry():
     # needed for interpolation.
     
     def adapt_AF_points(self, AF, n):
+        '''
+        This function change the number of points of the input airfoil according to the input number n.
+        According to this result, it is possible to import AF of arbitrary number of point and have in output Af described by the same nunmber of points, 
+        necessary for blade generation (interpolation based on fixed number of points)
+        It is mostly useful for custom airfoil beacuse, for example using AirfoilTools, AF coordinates are provided in a highly variable way.
+        
+        The function applies e double cosine spacing in order to have a fitted LE and TE, comuting a Bi-spline interpolation
+        (in fact it is impossible ti order points taking into account that the x vector start from 1, comes to 0 and returns to 1)
+
+        input variables: 
+        - AF_xz = two column array containing airfoil coordinates
+        - n = number of points 
+        
+        output:
+        - AF_xz: 2D column array containing coordinates. Every row describes a point 
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
 
         N=n//2
 
@@ -324,79 +505,55 @@ class Geometry():
 
         return AF
 
-    # SPAN AIRFOIL FUNCTION
-    # returns the X and Z co-ordinates at an arbitrary y station of the span using 1D cubic interpolation along the two directions.
-    # 1) reads the airfoil_known array
-    # 2) generates internally if the profiles are NACA on the common number of points n
-    #    and/or adjusts the number of points of the custom profiles and finally interpolates 
-    # 3) applies geometric transformations 
-    # 4) interpolates
-    # AF_xz = two column array (X and Z)
-    # y_query = station to which interpolation is requested (dimensional)
-    # n MUST be an even number (needed for other operations)
-    def AF_span_interp(self,y_query):
+    
+    def AF_span_interp(self, y_query):
+        '''
+        This function provides interpolated coordinates for a generic span station in a two columns array
+        performing 1D iterpolators fx and fz. 
+        
+        input variables: 
+        - y_query = dimensional span station 
+        
+        output:
+        - AF_in: 2D column array containing coordinates. Every row describes a point. Product of interpolation.
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
 
-        n = 200
+        #npoints = len(self.x[:,0])
+        #AFint = np.full((npoints, 2), np.nan)
 
-        x = []
-        z = []
-        if type(self.r_R_known) != 'array': self.r_R_known = np.array(self.r_R_known)
-        y = self.R*self.r_R_known
+        xint=self.fx(y_query)
+        xint = np.array(xint.reshape(-1, 1))
 
-        for i, airfoil in enumerate(self.airfoil_known):
-            
-            if airfoil.isdigit() and len(airfoil) == 4:
+        zint=self.fz(y_query)
+        zint = np.array(zint.reshape(-1, 1))
 
-                AF = self.naca4(airfoil)
-                AF = self.adapt_AF_points(AF, n)
+        AFint = np.hstack([xint,zint])
 
-            elif airfoil.isdigit() and len(airfoil) == 5:
-
-                AF = self.naca5(airfoil)
-                AF = self.adapt_AF_points(AF, n)
-
-            elif airfoil.lower() == 'custom':
-
-                path_dir = self.airfoil_dir()
-                name = f"airfoil_{i+1}.txt"
-                path_file = os.path.join(path_dir, name)
-                if os.path.exists(path_file):
-                    data = pd.read_csv(path_file, skiprows=1, delim_whitespace=True, header=None)
-                    AF = data.to_numpy()
-                    AF = np.array(AF)
-                    AF = self.adapt_AF_points(AF, n)
-
-
-            AF = self.AF_scale(AF,self.R*self.c_R_known[i])
-            AF = self.AF_trasl(AF)
-            AF = self.AF_rot(AF,self.beta_known[i])
-
-            x.append(AF[:,0])
-            z.append(AF[:,1])
-
-        x = np.column_stack(x)
-        z = np.column_stack(z)
-
-        npoints = len(x[:,0])
-        AFint = np.full((npoints, 2), np.nan)
-
-        for i in range(npoints):
-
-            xx = x[i,:]
-            f=interp1d(y, xx, kind = 'cubic', fill_value='none')
-            xint=f(y_query)
-            AFint[i,0]=xint
-
-            zz = z[i,:]
-            f=interp1d(y, zz, kind = 'cubic', fill_value='none')
-            zint=f(y_query)
-            AFint[i,1]=zint
-            
         return AFint
     
-    # for a given span station, it return the max thickness 
-    # designed for BEMT module
+
+    
     def AF_max_tk(self,y_query):
+        '''
+        This function computes the max thickness for a generic span station. It first performes the interpolation 
+        of the AF. Then, thanking to the adapt points function (acring in the blade initialization), computes the 
+        thickness for every station x (for each x station there is an upper and lower z, LOWER<--x-->UPPER) and 
+        picks the maximum
+
+        input variables: 
+        - y_query = dimensional span station 
+        
+        output:
+        - tk_max: max thickness
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
 
         AF = self.AF_span_interp(y_query)
 
@@ -410,13 +567,23 @@ class Geometry():
         return tk_max
 
 
-    # BLADE GENERATION FUNCTION
-    # provides the visualization of the blade interpolating a 3D grid where X and Z are provided by generative functions and 
-    # Y is a vector of unifrom spacing from hub radius to global radius.
-    # It also provide an STL file of the blade for third-party software visualization
-    #n = number of station for interpolation 
-    #wireframe -> alternative blade visualization method
     def gen_blade(self,n=50, wireframe = True):
+        '''
+        This function provides the interpolation for an arbitrary number of station 
+        and the visualization of the blade in two ways.
+        It also provides the STL file as output for further applications 
+        
+        input variables: 
+        - n = number of span points 
+        - wireframe = True for a second visualization type 
+        
+        output:
+        Blade visualizatin and STL file
+        
+        Author: Antonio Brunaccini
+        Date: 19/05/2024
+        Version: 1.00
+        '''
 
         yint_v = np.linspace(self.r_hub, self.R, n)
 
@@ -437,9 +604,6 @@ class Geometry():
         X = np.column_stack(x)
         Z = np.column_stack(z)
         Y = np.column_stack(y)
-
-        #combined_data = np.column_stack((X.flatten(), Y.flatten(), Z.flatten()))
-        #np.savetxt('wing.txt', combined_data, fmt='%f', delimiter='\t')
 
         wing = pv.StructuredGrid(X, Y, Z)
         wing = wing.triangulate()
