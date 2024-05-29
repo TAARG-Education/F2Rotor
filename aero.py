@@ -29,7 +29,7 @@ The independant variables are the section and the AoA, the dependant ones are Cl
     
 """
 
-## The class must have, as attributes, the Alpha0lift, the Clalpha, the Cl and Cd at the particular lift coefficient.
+
 import os
 import subprocess
 import numpy as np
