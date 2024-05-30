@@ -335,9 +335,6 @@ class Aerodynamics():
         except subprocess.CalledProcessError as e:
             print('Xfoil execution failed:', e)
             return [float('NaN')]
-        
-
-        
 
 ####################### THE FOLLOWING PART IS JUST AN EXAMPLE OF HOW TO USE IT. IT MUST BE COMMENTED ########################
 '''
