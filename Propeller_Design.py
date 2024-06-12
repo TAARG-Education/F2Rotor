@@ -1,7 +1,9 @@
 # PROPELLER DESIGN F2ROTOR
 #
 # Description: This class computes the solidity, pitch and load distributions 
-#              for an optimal propeller. The procedure is non-dimensional.
+#              for an optimal propeller. The procedure is non-dimensional and inviscid.
+#              The slope of the lift curve as a function of the angle of attack is 
+#              assumed to be equal to 2*pi.
 #              Three different tip-loss corrections can be applied
 #              (Prandtl, Goldstein or no correction).
 #
@@ -204,6 +206,8 @@ class Propeller_Design():
 
         '''
         This function evaluates iteratively the solidity, pitch and load distributions for an optimal propeller.
+        Dissipation forces are neglected and the slope of the lift curve as a function of the angle of attack is 
+        assumed to be equal to 2*pi.
         The iterative method used here is the false-position one, where the error is defined as:
 
         err = C_t_it - C_t  
