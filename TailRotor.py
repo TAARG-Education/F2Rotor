@@ -41,31 +41,52 @@ def TailRotor(Helicopter, V_infty, Qc, k_tr = 1.20):
     Version: 1.0
     '''
     
-    # Main rotor parameters 
-    Omega_R_mr = Helicopter.Omega_r_mr                            # Main rotor tip speed
-    R_mr = Helicopter.R_mr                                        # Main rotor radius 
-    A_mr = np.pi * R_mr ** 2                                      # Main rotor area
+    # Main rotor 
+    Omega_r_mr = Helicopter.Omega_r_mr                              # main rotor tip speed
+    R_mr = Helicopter.R_mr                                          # main rotor radius 
+    A_mr = np.pi * R_mr ** 2                                        # main rotor area
 
-    # Tail rotor parameters
-    R_tr = Helicopter.R_tr                                        # Tail rotor radius
-    c_tr = Helicopter.c_tr                                        # Tail rotor chord
-    N_tr = Helicopter.N_tr                                        # Tail rotor blades number
-    Omega_r_tr = Helicopter.Omega_r_tr                            # Tail rotor tip speed                 
-    l_tr = Helicopter.l_tr                                        # Tail rotor torque arm
-    A_tr = np.pi * R_tr ** 2                                      # Tail rotor area 
+    # Tail rotor
+    R_tr = Helicopter.R_tr                                          # tail rotor radius
+    c_tr = Helicopter.c_tr                                          # tail rotor chord
+    N_tr = Helicopter.N_tr                                          # tail rotor blades number
+    Omega_r_tr = Helicopter.Omega_r_tr                              # tail rotor tip speed                 
+    l_tr = Helicopter.l_tr                                          # tail rotor torque arm
+    A_tr = np.pi * R_tr ** 2                                        # tail rotor area 
 
-    CD_tr = 0.01                                                  # Tail rotor profile drag coefficient                    
-    mu_tr = V_infty / Omega_r_tr                                  # Tail rotor advance ratio (hp: AoA << 1)
+    CD_tr = 0.01                                                    # tail rotor profile drag coefficient                    
+    mu_tr = V_infty / Omega_r_tr                                    # tail rotor advance ratio (alpha << 1)
 
-    T_tr_over_rho = Omega_R_mr ** 2 * A_mr * R_mr * Qc / l_tr     # Tail rotor thrust over density
-
-    # Induced input ratio
-    lambda_it = np.sqrt(- V_infty ** 2 / 2 + 0.5 * np.sqrt(V_infty ** 4 
-                     + 4 * (T_tr_over_rho / (2 * A_tr)) ** 2)) / Omega_r_tr   
+    T_tr_over_rho = Omega_r_mr ** 2 * A_mr * R_mr * Qc / l_tr       # tail rotor thrust
     
-    # Power Coefficients calculation
-    Cp_tr_i = k_tr * lambda_it * R_tr * Qc / l_tr
+    print(f"Main Rotor Tip Speed (Omega_R_mr): {Omega_r_mr}")
+    print(f"Main Rotor Radius (R_mr): {R_mr}")
+    print(f"Main Rotor Area (A_mr): {A_mr}")
+    print(f"Tail Rotor Radius (R_tr): {R_tr}")
+    print(f"Tail Rotor Chord (c_tr): {c_tr}")
+    print(f"Tail Rotor Blades Number (N_tr): {N_tr}")
+    print(f"Tail Rotor Tip Speed (Omega_r_tr): {Omega_r_tr}")
+    print(f"Tail Rotor Torque Arm (l_tr): {l_tr}")
+    print(f"Tail Rotor Area (A_tr): {A_tr}")
+    print(f"Tail Rotor Profile Drag Coefficient (CD_tr): {CD_tr}")
+    print(f"Tail Rotor Advance Ratio (mu_tr): {mu_tr}")
+    print(f"Tail Rotor Thrust over Air Density (T_tr_over_rho): {T_tr_over_rho}")
+    
+    # induced input ratio
+    lambda_it = np.sqrt(-V_infty ** 2 / 2 + 0.5 * np.sqrt(V_infty ** 4 
+                     + 4 * (T_tr_over_rho / (2 * A_tr)) ** 2)) / Omega_r_tr
+    
+
+    w_i = lambda_it * Omega_r_tr
+
+    Cp_tr_i = k_tr * lambda_it * T_tr_over_rho / (Omega_r_tr ** 2 * A_tr)
     Cp_tr_0 = 1 / 8 * N_tr * c_tr * R_tr * CD_tr * (1 + 4.7 * mu_tr ** 2) / A_tr
     Cp_tr = Cp_tr_0 + Cp_tr_i
+
+    '''
+    print(f"Induced Power Coefficient (Cp_tr_i): {Cp_tr_i}")
+    print(f"Profile Power Coefficient (Cp_tr_0): {Cp_tr_0}")
+    print(f"Total Power Coefficient (Cp_tr): {Cp_tr}")
+    '''
 
     return Cp_tr_i, Cp_tr_0, Cp_tr
