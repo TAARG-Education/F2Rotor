@@ -59,19 +59,6 @@ def TailRotor(Helicopter, V_infty, Qc, k_tr = 1.20):
 
     T_tr_over_rho = Omega_r_mr ** 2 * A_mr * R_mr * Qc / l_tr       # tail rotor thrust
     
-    print(f"Main Rotor Tip Speed (Omega_R_mr): {Omega_r_mr}")
-    print(f"Main Rotor Radius (R_mr): {R_mr}")
-    print(f"Main Rotor Area (A_mr): {A_mr}")
-    print(f"Tail Rotor Radius (R_tr): {R_tr}")
-    print(f"Tail Rotor Chord (c_tr): {c_tr}")
-    print(f"Tail Rotor Blades Number (N_tr): {N_tr}")
-    print(f"Tail Rotor Tip Speed (Omega_r_tr): {Omega_r_tr}")
-    print(f"Tail Rotor Torque Arm (l_tr): {l_tr}")
-    print(f"Tail Rotor Area (A_tr): {A_tr}")
-    print(f"Tail Rotor Profile Drag Coefficient (CD_tr): {CD_tr}")
-    print(f"Tail Rotor Advance Ratio (mu_tr): {mu_tr}")
-    print(f"Tail Rotor Thrust over Air Density (T_tr_over_rho): {T_tr_over_rho}")
-    
     # induced input ratio
     lambda_it = np.sqrt(-V_infty ** 2 / 2 + 0.5 * np.sqrt(V_infty ** 4 
                      + 4 * (T_tr_over_rho / (2 * A_tr)) ** 2)) / Omega_r_tr
@@ -82,11 +69,5 @@ def TailRotor(Helicopter, V_infty, Qc, k_tr = 1.20):
     Cp_tr_i = k_tr * lambda_it * T_tr_over_rho / (Omega_r_tr ** 2 * A_tr)
     Cp_tr_0 = 1 / 8 * N_tr * c_tr * R_tr * CD_tr * (1 + 4.7 * mu_tr ** 2) / A_tr
     Cp_tr = Cp_tr_0 + Cp_tr_i
-
-    '''
-    print(f"Induced Power Coefficient (Cp_tr_i): {Cp_tr_i}")
-    print(f"Profile Power Coefficient (Cp_tr_0): {Cp_tr_0}")
-    print(f"Total Power Coefficient (Cp_tr): {Cp_tr}")
-    '''
 
     return Cp_tr_i, Cp_tr_0, Cp_tr
