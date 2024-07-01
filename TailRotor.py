@@ -42,32 +42,31 @@ def TailRotor(Helicopter, V_infty, Qc, k_tr = 1.20):
     '''
     
     # Main rotor 
-    Omega_r_mr = Helicopter.Omega_r_mr                              # main rotor tip speed
-    R_mr = Helicopter.R_mr                                          # main rotor radius 
-    A_mr = np.pi * R_mr ** 2                                        # main rotor area
+    Omega_r_mr = Helicopter.Omega_r_mr                                             # main rotor tip speed
+    R_mr = Helicopter.R_mr                                                         # main rotor radius 
+    A_mr = np.pi * R_mr ** 2                                                       # main rotor area
 
     # Tail rotor
-    R_tr = Helicopter.R_tr                                          # tail rotor radius
-    c_tr = Helicopter.c_tr                                          # tail rotor chord
-    N_tr = Helicopter.N_tr                                          # tail rotor blades number
-    Omega_r_tr = Helicopter.Omega_r_tr                              # tail rotor tip speed                 
-    l_tr = Helicopter.l_tr                                          # tail rotor torque arm
-    A_tr = np.pi * R_tr ** 2                                        # tail rotor area 
+    R_tr = Helicopter.R_tr                                                         # tail rotor radius
+    c_tr = Helicopter.c_tr                                                         # tail rotor chord
+    N_tr = Helicopter.N_tr                                                         # tail rotor blades number
+    Omega_r_tr = Helicopter.Omega_r_tr                                             # tail rotor tip speed                 
+    l_tr = Helicopter.l_tr                                                         # tail rotor torque arm
+    A_tr = np.pi * R_tr ** 2                                                       # tail rotor area 
 
-    CD_tr = 0.01                                                    # tail rotor profile drag coefficient                    
-    mu_tr = V_infty / Omega_r_tr                                    # tail rotor advance ratio (alpha << 1)
+    CD_tr = 0.01                                                                   # tail rotor profile drag coefficient                    
+    mu_tr = V_infty / Omega_r_tr                                                   # tail rotor advance ratio (alpha << 1)
 
-    T_tr_over_rho = Omega_r_mr ** 2 * A_mr * R_mr * Qc / l_tr       # tail rotor thrust
+    T_tr_over_rho = Omega_r_mr ** 2 * A_mr * R_mr * Qc / l_tr                      # tail rotor thrust over rho
     
-    # induced input ratio
+    # induced input ratio: induced inflow over tip speed 
     lambda_it = np.sqrt(-V_infty ** 2 / 2 + 0.5 * np.sqrt(V_infty ** 4 
                      + 4 * (T_tr_over_rho / (2 * A_tr)) ** 2)) / Omega_r_tr
     
 
-    w_i = lambda_it * Omega_r_tr
 
-    Cp_tr_i = k_tr * lambda_it * T_tr_over_rho / (Omega_r_tr ** 2 * A_tr)
-    Cp_tr_0 = 1 / 8 * N_tr * c_tr * R_tr * CD_tr * (1 + 4.7 * mu_tr ** 2) / A_tr
-    Cp_tr = Cp_tr_0 + Cp_tr_i
+    Cp_tr_i = k_tr * lambda_it * T_tr_over_rho / (Omega_r_tr ** 2 * A_tr)          # tail rotor induced power coefficient
+    Cp_tr_0 = 1 / 8 * N_tr * c_tr * R_tr * CD_tr * (1 + 4.7 * mu_tr ** 2) / A_tr   # tail rotor parasite power coefficient
+    Cp_tr = Cp_tr_0 + Cp_tr_i                                                      # tail rotor total power coefficient
 
     return Cp_tr_i, Cp_tr_0, Cp_tr
