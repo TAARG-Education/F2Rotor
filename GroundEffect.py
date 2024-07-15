@@ -12,7 +12,7 @@
     #     for the main rotor needed power.
     # 4. Return the ground effect correction coefficients.
 
-# INPUT: Helicopter class, Height
+# INPUT: Radius, Height
 # OUTPUT: T_ratio_IGE, P_ratio_IGE
 
 # References: 
@@ -32,6 +32,18 @@ import numpy as np
  
 # Definizione della funzione ground_effect
 def ground_effect(Radius, Height): 
+
+    '''
+    This function computes the ground effect correction coefficients 
+    for the performances of the main rotor
+
+    INPUT: Radius, Height
+    OUTPUT: T_ratio_IGE, P_ratio_IGE
+
+    Authors: Andrea Iuliano, Michele Follo
+    Latest update: 15/07/2024
+    Version: 1.0
+    '''
 
     # Thrust Correction Coefficient                       
     T_ratio_IGE = 1 / (1 - (Radius / (4 * Height))**2) 
