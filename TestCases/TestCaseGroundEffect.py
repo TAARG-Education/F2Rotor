@@ -3,9 +3,15 @@ import numpy as np
 from GroundEffect import *
 
 '''
-This test case aims to validate the function "GroundEffect.py"
+
+This test case aims to validate the function "GroundEffect.py", which calculates
+the ground effect correction coefficients for thr thrust and the power
+of the main rotor. For this Test Case an helicopter class has been defined
+with a generic main rotor radius of 10m. A generic ground distance of 4m 
+has been taken for this example.
 
 Authors: Andrea Iuliano, Michele Follo
+
 '''
 # Input data
 R_mr = 10  # Main rotor radius [m]

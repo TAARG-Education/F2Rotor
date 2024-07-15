@@ -87,8 +87,8 @@ for V_infty in V_infty_values:
     P_tr_0_values.append(Cp_tr_0 * rho * Omega_r_tr**3 * np.pi * R_tr**2)  # tail rotor parasite power
     P_tr_values.append(Cp_tr * rho * Omega_r_tr**3 * np.pi * R_tr**2)      # tail rotor total power
 
-#print(f"Qc: {Q_c}")
-#print(f"Cp_tr_i: {Cp_tr_i}, Cp_tr_0: {Cp_tr_0}, Cp_tr: {Cp_tr}")
+print(f"Qc: {Q_c}")
+print(f"Cp_tr_i: {Cp_tr_i}, Cp_tr_0: {Cp_tr_0}, Cp_tr: {Cp_tr}")
 
 # Plotting all three powers in one graph with LaTeX formatting
 plt.figure(figsize=(10, 6))
