@@ -4,7 +4,7 @@
 #
 #References:-"Lezioni Aerodinamica dell'ala rotante", v2.05, Renato Tognaccini,
 #             section 7.5, "Potenza parassita della fusoliera"
-#           -"Fluid-Dynamic Drag", Hoerner
+#           -"Fluid-Dynamic Drag", Hoerner, chapter 3, section 5, "Drag of round bodies"
 #
 #Author: Arianna Palumbo
 #Rotary Wing Aerodynamics course, prof. Renato Tognaccini
