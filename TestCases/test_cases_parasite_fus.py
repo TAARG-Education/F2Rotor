@@ -14,7 +14,7 @@
 #x   5) helicopter_type: helicopter type (conventional or compound). We use the instance “conventional” to indicate that the studied helicopter is conventional;                             x
 #x      “compound” to indicate that it is a compound helicopter.                                                                                                                             x                                               x
 #x                                                                                                                                                                                           x
-#x   The max speed at sea level is considered for calculating the asymptotic Mach number (clearly different choices are possible).                                                          x                                                                                                                             x
+#x   The max speed at sea level is considered for calculating the asymptotic Mach number (clearly different choices are possible).                                                           x                                                                                                                             x
 #x                                                                                                                                                                                           x
 #x Author: Iole Paolillo                                                                                                                                                                     x
 #x Latest update: 21/07/2024                                                                                                                                                                 x
@@ -52,7 +52,7 @@ mydata = DataImport(Re_inf, M_inf, config, S, helicopter_type)
 result_inter_fact = mydata.inter_fact()
 if result_inter_fact is not None:
     f_Af, f_f = mydata.fuselage()
-    print(f"The correlation factor is: {result_inter_fact}")
+    print(f"Wing-fuselage interference factor R_WB: {result_inter_fact}")
     print(f"f_Af: {f_Af}, f_f: {f_f}")
 else:
     print("Failed to calculate the correlation factor due to input errors.")
