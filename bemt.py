@@ -23,16 +23,35 @@
 #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 import numpy as np
-from ambiance import Atmosphere
 import os 
-
+from scipy.integrate import trapezoid as trapz
 
 # utility functions
 def initialize_vars(z,geom,dx,J):
-    # define atmoshpere
-    atmosphere = Atmosphere([z*1000])
-    T, rho,mu,a_sound = atmosphere.temperature[0], atmosphere.density[0], atmosphere.dynamic_viscosity[0], atmosphere.speed_of_sound[0]
-    ni = mu/rho
+    '''
+    This function evaluates the blade characteristics.
+    Theory in McCormick, B. W., (1967), "Aerodynamics of V/STOL Flight", p. ...
+    
+    input variables: 
+    - z: altitude
+    - J: advance ratio 
+    - D: blade diameter
+    - geom class: further details in geometry class
+    
+    output:
+    - D: blade diameter
+    - omega: angular velocity
+    - Vt: tangential velocity
+    - Vinf: asymptotic velocity
+    - lam
+    - x_vec: blade discretization vector
+    - x_hub: hub radius ratio
+    
+    Authors: Daniele Di Somma, Emanuele Viglietti
+    Date: 24/05/2024
+    Version: 1.00
+    
+    '''
  
     # diameter
     D = 2*geom.R
@@ -47,11 +66,36 @@ def initialize_vars(z,geom,dx,J):
 
     lam = Vinf/Vt       # lambda
     
-    return T,rho,ni,a_sound,D,omega,Vt,Vinf,lam,x_vec,x_hub
+    return D,omega,Vt,Vinf,lam,x_vec,x_hub
 
 
-def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
-
+def section_characteristic(x,geom,Vinf,omega,aero):
+    '''
+    This function calculates the main characteristics of each blade section.
+    Theory in McCormick, B. W., (1967), "Aerodynamics of V/STOL Flight", p. ...
+    input variables: 
+    - x: radius ratio
+    - omega: blade angular velocity
+    - Vinf: asymptotic velocity 
+    - geom class: further details in geometry class
+    - aero class: further details in aero class
+    - curvature: boolean var, if 'True' applies curvature correction
+    - thickness: boolean var, if 'True' applies thickness correction
+    
+    output:
+    - sigma: solidity
+    - chord
+    - cla: lift curve slope
+    - Vr: effective velocity
+    - phi: inflow angle
+    - beta: twist angle
+    - bo: zero-lift angle
+    
+    Authors: Daniele Di Somma, Emanuele Viglietti
+    Date: 24/05/2024
+    Version: 1.00
+    '''
+    
     beta = np.deg2rad(geom.fb(x))
     beta +=np.deg2rad(geom.pitch)
         
@@ -66,11 +110,11 @@ def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
     # evaluate Lift curve slope and Alpha zero Lift using aero class object.
     if aero.aero_method == 1 or aero.aero_method == 2:
         cla = aero.aero_params['Cl_alpha']
-        if aero.M_corr:
-            cla/=(1-(Vr/a_sound)**2)**0.5
+        # if aero.M_corr:
+        #     cla/=(1-(Vr/a_sound)**2)**0.5
         bo = aero.aero_params['alpha_0_lift']
     else: 
-        cla, bo = aero.eval_lift_properties(x = x, M = Vr/a_sound)
+        cla, bo = aero.eval_lift_properties(x = x, Vr = Vr)
     
     # define beta with respect to zero-lift line
     beta -= bo
@@ -78,9 +122,10 @@ def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
     return sigma, chord, cla, Vr, phi, beta, bo
 
 
-def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature=True, thickness=True):
+def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, curvature=True, thickness=True):
     '''
-    This function allows the calculation of thrust and power coefficients for a given blade section adopting the momentum theory.
+    This function allows the calculation of thrust and power coefficients for a given blade section adopting the momentum theory,
+    with or without taking into account curvature and thickness effects.
     Theory in McCormick, B. W., (1967), "Aerodynamics of V/STOL Flight", p. ...
     input variables: 
     - z: altitude
@@ -91,8 +136,25 @@ def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, 
     - thickness: boolean var, if 'True' applies thickness correction
     
     output:
-    - ct: thrust coefficient
-    - cp: power coefficient
+    - x: radius ratio 
+    - dx: radius increment
+    - J: advance ratio
+    - lam:
+    - sigma: solidity
+    - chord
+    - alpha_i: induced angle of attack
+    - beta: twist angle
+    - bo: zero-lift angle
+    - phi: inflow angle
+    - Vinf: asymptotic velocity
+    - Vr: effective velocity
+    - wa: axial induction
+    - wt: tangential induction
+    - omega: angular velocity
+    - geom class: further details in geometry class
+    - aero class: further details in aero class
+    - curvature: boolean var, if 'True' applies curvature correction
+    - thickness: boolean var, if 'True' applies thickness correction
     
     Authors: Daniele Di Somma, Emanuele Viglietti
     Date: 24/05/2024
@@ -106,12 +168,12 @@ def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, 
         dalpha_c = 0
         
     # thickness effect
-    tmax_c = geom.AF_max_tk(x*geom.R)/chord
     if thickness:
+        tmax_c = geom.AF_max_tk(x*geom.R)/chord
         dalpha_t = (4/15) * (lam*sigma/(lam**2 + x**2)) * (tmax_c)
     else:
         dalpha_t = 0
-   
+    
     # calculate effective AoA with respect to zero lift line
     alpha = beta - phi - alpha_i - dalpha_c - dalpha_t
     # correct AoA for aligning with the chord
@@ -119,24 +181,22 @@ def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, 
     
     # calculate airfoil coefficients using aero class object
     if aero.aero_method == 1:
-        cl, cd = aero.clcd1(Re_ref =1e+6 ,Re =Vr*chord/ni ,M = Vr/a_sound,AoA=alpha)
+        cl, cd = aero.clcd1(Re_ref =1e+6 , Vr = Vr ,chord = chord, AoA=alpha)
     elif aero.aero_method == 2:
-        cl,cd = aero.clcd2(Re_ref = 1e+6, Re = Vr*chord/ni, M = Vr/a_sound, AoA = alpha)
+        cl,cd = aero.clcd2(Re_ref = 1e+6, Vr = Vr ,chord = chord, AoA = alpha)
     else: 
-        cl, cd = aero.clcd3(AoA = np.rad2deg(alpha), Re_ref = 1e+6, Re = Vr*chord/ni, M = Vr/a_sound, x = x)
+        cl, cd = aero.clcd3(AoA = np.rad2deg(alpha), Re_ref = 1e+6, Vr = Vr ,chord = chord, x = x)
     
     # calculate section contribute of ct and cp
     delct = (np.pi/8)*((J**2) + ((np.pi*x)**2))*sigma*((cl*np.cos(phi+alpha_i+dalpha_c+dalpha_t))
-                                                    - (cd*np.sin(phi+alpha_i+dalpha_c+dalpha_t)))*dx
+                                                    - (cd*np.sin(phi+alpha_i+dalpha_c+dalpha_t)))
         
     delcp = (np.pi/8)*(np.pi*x)*((J**2)+((np.pi*x)**2))*sigma*((cl*np.sin(phi+alpha_i+dalpha_c+dalpha_t))
-                                                                + (cd*np.cos(phi+alpha_i+dalpha_c+dalpha_t)))*dx
-        
+                                                                + (cd*np.cos(phi+alpha_i+dalpha_c+dalpha_t)))
     return delct, delcp
 
     
 def hub_loss(ct,J,D,geom):
-    
     '''
     This function corrects the thrust coefficient introducing hub effect.
     Theory in McCormick, B. W., (1967), "Aerodynamics of V/STOL Flight", p. ...
@@ -189,13 +249,15 @@ def BEMT_timp(z,J,dx,geom,aero, curvature=True, thickness=True, hub_corr=True):
     '''
     
     # initialize variables
-    T,rho,ni,a_sound,D,omega,Vt,Vinf,lam,x_vec,x_hub = initialize_vars(z,geom,dx,J)
+    D,omega,Vt,Vinf,lam,x_vec,x_hub = initialize_vars(z,geom,dx,J)
 
     # start loop over blade sections
     cp, ct = 0.,0.
-    for x in x_vec:
+    delct = np.zeros(x_vec.shape)
+    delcp = np.zeros(x_vec.shape)
+    for int_x,x in enumerate(x_vec):
         # evaluate section characteristics
-        sigma, chord, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero)
+        sigma, chord, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,aero)
         
         # calculate alpha
         alpha_i = (0.5*np.sqrt((((lam/x)+((sigma*cla*Vr)/(8*Vt*x**2)))**2)+
@@ -204,10 +266,12 @@ def BEMT_timp(z,J,dx,geom,aero, curvature=True, thickness=True, hub_corr=True):
         wt = Vr*alpha_i*np.sin(phi+alpha_i)
         wa = Vr*alpha_i*np.cos(phi+alpha_i)
         
-        # evaluate section performance
-        delct, delcp= section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
-        ct += delct
-        cp += delcp
+        # evaluate section performance 
+        delct[int_x], delcp[int_x] = section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, curvature, thickness)
+        
+    # trapezoidal rule for integration
+    ct = trapz(delct, x=x_vec)
+    cp = trapz(delcp, x=x_vec)
     
     # hub correction
     if hub_corr:
@@ -241,13 +305,15 @@ def BEMT_tvorpd(z,J,dx,geom,aero,curvature=True, thickness=True, hub_corr=True):
     '''
     
     # initialize variables
-    T,rho,ni,a_sound,D,omega,Vt,Vinf,lam,x_vec,x_hub = initialize_vars(z,geom,dx,J)
+    D,omega,Vt,Vinf,lam,x_vec,x_hub = initialize_vars(z,geom,dx,J)
 
     # start loop over blade sections
     cp, ct = 0.,0.
-    for x in x_vec:
+    delct = np.zeros(x_vec.shape)
+    delcp = np.zeros(x_vec.shape)
+    for int_x,x in enumerate(x_vec):
         # evaluate section characteristics
-        sigma, chord, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero)
+        sigma, chord, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,aero)
         
         # calculate alpha
         # calculate inflow angle at blade tip
@@ -269,9 +335,11 @@ def BEMT_tvorpd(z,J,dx,geom,aero,curvature=True, thickness=True, hub_corr=True):
         wa = Vr*alpha_i*np.cos(phi+alpha_i)
         
         # evaluate section performance 
-        delct, delcp = section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
-        ct += delct
-        cp += delcp
+        delct[int_x], delcp[int_x] = section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, curvature, thickness)
+        
+    # trapezoidal rule for integration
+    ct = trapz(delct, x=x_vec)
+    cp = trapz(delcp, x=x_vec)
     
     # hub correction
     if hub_corr:
@@ -304,13 +372,15 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=False, hub_corr=True):
     '''
     
     # initialize variables
-    T,rho,ni,a_sound,D,omega,Vt,Vinf,lam,x_vec,x_hub = initialize_vars(z,geom,dx,J)
+    D,omega,Vt,Vinf,lam,x_vec,x_hub = initialize_vars(z,geom,dx,J)
 
     # start loop over blade sections
     cp, ct = 0.,0.
-    for x in x_vec:
+    delct = np.zeros(x_vec.shape)
+    delcp = np.zeros(x_vec.shape)
+    for int_x,x in enumerate(x_vec):
         # evaluate section characteristics
-        sigma, chord, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero)
+        sigma, chord, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,aero)
         
         # calculate alpha
         # calculate inflow angle at blade tip
@@ -377,12 +447,13 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=False, hub_corr=True):
             wa = wasa
             alpha_i = alfaisa
         
-        
         # evaluate section performance 
-        delct, delcp= section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
-        ct += delct
-        cp += delcp
+        delct[int_x], delcp[int_x] = section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, curvature, thickness)
         
+    # trapezoidal rule for integration
+    ct = trapz(delct, x=x_vec)
+    cp = trapz(delcp, x=x_vec)
+    
     # hub correction
     if hub_corr:
         ct = hub_loss(ct,J,D,geom)
