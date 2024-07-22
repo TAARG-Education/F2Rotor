@@ -30,7 +30,7 @@ helicopter_type = "conventional"                           # (for Lockheed AH-56
 R_mr = 11.28 / 2          # [m] main rotor radius          # (for Lockheed AH-56A Cheyenne use: 15.62 / 2 m)                             
 S = ma.pi * R_mr**2         # [m^2] rotor disk area
 config = {
-    "ParasiteArea": [{"h": 2.62, "d": 1.52, "L": 10.53}]   # fuselage dimensions Bell 505 [m] (for Lockheed AH-56A Cheyenne use: "h":3.39, "d": 2.15, "L": 16.63)
+    "ParasiteArea": [{"h": 2.62, "d": 1.52, "L": 10.53}]   # fuselage dimensions Bell 505 [m] (for Lockheed AH-56A Cheyenne use: "h":3.23, "d": 2.15, "L": 16.63)
 }
 L_fuselage = config["ParasiteArea"][0]["L"]                
 V_max = 64.3056                                            # max speed SL [m/s] (= 125 kts) (for Lockheed AH-56A Cheyenne use: 113.178 m/s = 220 knots)
