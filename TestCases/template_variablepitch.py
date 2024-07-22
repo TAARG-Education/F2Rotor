@@ -1,7 +1,7 @@
 
-from modules import bemt
-from modules import aero
-from modules import cad_v2 as cad
+from ... import bemt
+from ... import aero
+from ... import cad_v2 as cad
 import os
 import numpy as np
 import math
@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 
 ## USER INTERFACE ##
 # operating condition
-z = 1 #km
+z = 1
 rpm = 2000 
-J_vec = np.arange(0., 2.6, 0.02)      # asymptotic velocity
+J_vec = np.arange(0., 2.6, 0.02)
 
 # Geometry
 D = 1.66         # blade diameter
@@ -21,16 +21,17 @@ dx = 0.01        # radius increment along blade
 c = 0.14         # chord distribution
 beta = 30.       # beta distribution
 pitch = 0.       # pitch
-r_R_known = [0.12048,0.25, 0.5, 0.75, 0.9999999999999999] #0.12048 #r/R station
-c_known = [0.083,0.1079,0.1411,0.0913,0.0166] #chord distribution
-beta_known = [70,55,35,25,0.1]                # beta distribuction
+r_R_known = [0.12048,0.25, 0.5, 0.75, 0.9999999999999999]       # r/R station
+c_known = [0.083,0.1079,0.1411,0.0913,0.0166]                   # chord distribution
+beta_known = [70,55,35,25,0.1]                                  # beta distribuction
 Airfoil = ['4412', '4412', '4412', '4412','4412']
+kind = 'cubic'
 
 # initialize pitch vector
 pitchd_vec = [0., 5., 10., 15., 20]
 
-### CAD ### (ARBI Xrotor)
-geom = cad.Geometry(D/2, Rhub, nbl, rpm, r_R_known, c_known, beta_known,0,Airfoil,pitch)
+### CAD ###
+geom = cad.Geometry(D/2, Rhub, nbl, rpm, r_R_known, c_known, beta_known,0,Airfoil,pitch, kind)
 
 ### AERODYNAMICS ###
 ### Instantiate the aerodynamics class ###
@@ -51,6 +52,7 @@ aero_params2 = {                            # For aero method 2
 aero = aero.Aerodynamics(aero_method=aero_method, aero_params=aero_params2, M_corr=True, Rey_corr=True, z = z)
 
 
+# initialize matrices to store coefficients
 ct_matrix = np.full((len(J_vec),len(pitchd_vec)),np.nan)
 cp_matrix = np.full((len(J_vec),len(pitchd_vec)),np.nan)
 eta_matrix = np.full((len(J_vec),len(pitchd_vec)),np.nan)
@@ -66,7 +68,6 @@ for m,pitchd in enumerate(pitchd_vec):
         if (ct_matrix[:,m] < 0).any(): break
 ind = np.where(ct_matrix < 0)[0]
 indx = np.where(ct_matrix < 0)[0]
-
 
 
 # OUTPUT ##
