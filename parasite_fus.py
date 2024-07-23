@@ -120,8 +120,8 @@ def fuselage(data_import):
 
 	    - Output: 
             1) f_Af (drag coefficient of the fuselage)
-	        2) f_f (equivalent wetted area f=Cf*Swet)
-        '''
+            2) f_f (equivalent wetted area f=Cf*Swet)
+    '''
     # Extraction of geometric and aerodynamic parameters
     h = data_import.config["ParasiteArea"][0]["h"]
     d = data_import.config["ParasiteArea"][0]["d"]
