@@ -23,4 +23,4 @@ class Helicopter:
         self.l_tr = l_tr                     # Distance between tail rotor and main rotor
 
 
-        # Developing the possibility of integration within the feature_geometry
+        # Developing the possibility of integration within the feature_geometry 
