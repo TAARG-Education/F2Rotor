@@ -3,6 +3,8 @@ class Helicopter:
 
         # Main rotor
         self.Omega_r_mr = Omega_r_mr # Main rotor tip speed (m/s)
+    def __init__(self, Omega_R_mr, R_mr, R_hub, c_mr, N_mr, theta0, theta_tw, Cla, Cd0):
+        self.Omega_r_mr = Omega_R_mr # Main rotor tip speed (m/s)
         self.R_mr = R_mr  # Main rotor radius (m)
         self.R_hub = R_hub  # Rotor hub radius (m)
         self.c_mr = c_mr  # Rotor's chord (m)
@@ -21,4 +23,4 @@ class Helicopter:
         self.l_tr = l_tr                     # Distance between tail rotor and main rotor
 
 
-        # Developing the possibility of integration within the feature_geometry
+        # Developing the possibility of integration within the feature_geometry 
