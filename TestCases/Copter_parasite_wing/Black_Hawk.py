@@ -1,12 +1,12 @@
-"""
-This test case script calculates aerodynamic coefficients for the horizontal stabilizer of a simulated Sirosky UH-60 Black Hawk using Python.
-The script utilizes parameters such as wing span, wing chord, wing thickness ratio, and aspect ratio specific to the copter selected, all defined in a configuration dictionary (config).
-Additionally, flight parameters such as cruise speed, altitude, speed of sound, kinematic viscosity, and density are specified to compute the Mach number and Reynolds number necessary for aerodynamic calculations.
 
-Author: Eduardo Duraccio
-    Date: 17/07/2024
-    Version: 1.02
-"""
+#This test case script calculates aerodynamic coefficients for the horizontal stabilizer of a simulated Sirosky UH-60 Black Hawk using Python.
+#The script utilizes parameters such as wing span, wing chord, wing thickness ratio, and aspect ratio specific to the copter selected, all defined in a configuration dictionary (config).
+#Additionally, flight parameters such as cruise speed, altitude, speed of sound, kinematic viscosity, and density are specified to compute the Mach number and Reynolds number necessary for aerodynamic calculations.
+
+#Author: Eduardo Duraccio
+ #   Date: 17/07/2024
+ #   Version: 1.02
+
 import matplotlib.pyplot as plt
 import math
 import numpy as np
