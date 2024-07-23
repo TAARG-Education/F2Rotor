@@ -1,15 +1,14 @@
-"""
-This function calculates the aerodynamic drag characteristics of a wing through a series of empirical and theoretical calculations, including factors for skin friction,
-compressibility, and interference. The function uses inputs such as wing span, chord length, wing thickness, and aspect ratio from a configuration dictionary. 
-It also takes into account freestream conditions like Mach number and Reynolds number.It computes the dimensional and non dimensional drag coefficient.
 
-The theory behind this code can be found in: Carlo De Nicola - "Appunti per il corso di Aerodinamica degli Aeromiboili" - a.a. 2018/2019 - Appendice E.
+#This function calculates the aerodynamic drag characteristics of a wing through a series of empirical and theoretical calculations, including factors for skin friction,
+#compressibility, and interference. The function uses inputs such as wing span, chord length, wing thickness, and aspect ratio from a configuration dictionary. 
+#It also takes into account freestream conditions like Mach number and Reynolds number.It computes the dimensional and non dimensional drag coefficient.
 
-    Authors: Eduardo Duraccio, Samuel Filosa
-    Date: 17/07/2024
-    Version: 1.01
+#The theory behind this code can be found in: Carlo De Nicola - "Appunti per il corso di Aerodinamica degli Aeromiboili" - a.a. 2018/2019 - Appendice E.
 
-"""
+    #Authors: Eduardo Duraccio, Samuel Filosa
+   # Date: 17/07/2024
+   # Version: 1.01
+
 
 def wing_comp(self):
     b = self.config["Lift-Compound"][0]["b_w"]  # wing span
