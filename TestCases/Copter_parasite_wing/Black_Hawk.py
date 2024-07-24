@@ -24,8 +24,8 @@ r = 0.89        #compressibility correction factor
 gamma = 1.4     # ratio of specific heats for air
 K =0.0009       #admissible roughness
 R_w_b = 1.07    # interference factor wing-fusolage
-ala_fissa = False # fixed or rotary wing
-profilo = "4-series" # type of airfoil
+fixed_wing = False # fixed or rotary wing
+airfoil = "4-series" # type of airfoil
 turbolentflow = True # laminar or turbolent flow
 
 
@@ -38,12 +38,9 @@ rho = 1.0065      # Density [kg/m³]
 
 
 helicopter_HS = Helicopter_HS(tau=tau, b_w=b_w, AR=AR, R_LS=R_LS, Hf=Hf, r=r, gamma=gamma, k=K, R_mr=R_mr, 
-                              c_w=c_w, R_w_b=R_w_b, ala_fissa= ala_fissa, profilo= profilo, turbolentflow= turbolentflow)
+                              c_w=c_w, R_w_b=R_w_b, fixed_wing= fixed_wing, airfoil= airfoil, turbolentflow= turbolentflow)
 helicopter_HS.set_M_inf(v, a)
 helicopter_HS.set_Re_inf(v, rho, nu)
-
-
-
 
 
 
@@ -55,3 +52,4 @@ print("M_inf:", helicopter_HS.M_inf)
 print("R_inf:", helicopter_HS.Re_inf)
 print("Drag coefficient for the wing:", f_Awing)
 print("Dimensional drag coefficient for the wing:", f_wing)
+
