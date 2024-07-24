@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 from Copter_parasite_wing import parasite_wing
-from Helicopter_Class import Helicopter_HS
+from Helicopter_HS_Class import Helicopter_HS
 
 
 b_w = 8.10    # Wing span [m] 
