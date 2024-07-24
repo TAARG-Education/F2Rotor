@@ -31,25 +31,25 @@ def parasite_wing(helicopter):
     r = helicopter.r # compressibility correction factor
     gamma = helicopter.gamma # ratio of specific heats for air
     K = helicopter.k # admissible roughness
-    ala_fissa = helicopter.ala_fissa # fixed or rotary wing
-    profilo = helicopter.profilo # type of airfoil
+    fixed_wing = helicopter.fixed_wing # fixed or rotary wing
+    airfoil = helicopter.airfoil # type of airfoil
 
     S = b**2/AR_w #wing area
     S_rotor= 3.14*r_mr**2 # reference area (rotor area)
     Swet = 2 * S  # wetted area of the wing (both sides)
 
-    if profilo == "4-series":                       # insert "4-series" to use 4-series airfoil
+    if airfoil == "4-series":                       # insert "4-series" to use 4-series airfoil
         FF = 1 + 1.68 * (tau / c) + 3 * (tau / c)**2    # form factor for 4-series airfoil
-    elif profilo == "biconvex":                       # insert "biconvex" to use biconvex airfoil
+    elif airfoil == "biconvex":                       # insert "biconvex" to use biconvex airfoil
         FF= 1 + 1.20 * tau + 100 * tau**4               # form factor for biconvex-airfoil
-    elif profilo == "6-series":                      # insert "6-series" to use 6-series airfoil
+    elif airfoil == "6-series":                      # insert "6-series" to use 6-series airfoil
         FF = 1 + 1.44 * tau + 2 * tau**2                # form factor for 6-series airfoil
     else:
         print("Errore nell'immissione del profilo")
     
     
 
-    if ala_fissa == False:   #select "False" if there's a rotary wing
+    if fixed_wing == False:   #select "False" if there's a rotary wing
         IF = R_LS * Hf                  # interference factor for rotary wing  
     else:                               # select "True" if there's a fixed wing
         IF = R_LS * R_w_b               # interference factor for fixed wing
