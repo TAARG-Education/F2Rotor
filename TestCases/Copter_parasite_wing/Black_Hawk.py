@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 from Copter_parasite_wing import parasite_wing
-from Helicopter_Class import Helicopter_HS
+from Helicopter_HS_Class import Helicopter_HS
 
 b_w = 4.38      # Wing span [m] 
 c_w = 0.95      # wing chord [m]  
@@ -55,4 +55,3 @@ print("M_inf:", helicopter_HS.M_inf)
 print("R_inf:", helicopter_HS.Re_inf)
 print("Drag coefficient for the wing:", f_Awing)
 print("Dimensional drag coefficient for the wing:", f_wing)
-
