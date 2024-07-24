@@ -1,6 +1,6 @@
 class Helicopter_HS:
     def __init__(self, tau, b_w, AR, R_LS, Hf, r, gamma, k, 
-                 R_w_b, c_w, R_mr, ala_fissa, profilo, turbolentflow):
+                 R_w_b, c_w, R_mr, fixed_wing, airfoil, turbolentflow):
         
 
         self.tau = tau
@@ -16,8 +16,8 @@ class Helicopter_HS:
         self.R_mr=R_mr
         self.M_inf = None
         self.Re_inf = None
-        self.ala_fissa = ala_fissa
-        self.profilo = profilo
+        self.fixed_wing= fixed_wing
+        self.airfoil = airfoil
         self.turbolentflow = turbolentflow
 
         
@@ -27,6 +27,7 @@ class Helicopter_HS:
 
     def set_M_inf(self, v, a):
         self.M_inf = v/a
+        
         
 
    
