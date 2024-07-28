@@ -26,14 +26,14 @@ from ambiance import Atmosphere
 from parasite_fus import *       # Importing all objects defined in the module
 
 # Input parameters to be used to study the Aérospatiale SA 341 Gazelle helicopter (input parameters to be used to study the Lockheed AH-56A Cheyenne compound helicopter are shown in parentheses)
-helicopter_type = "conventional" # (for Lockheed AH-56A Cheyenne use: "compound")       
-R_mr = 10.500 / 2                 # [m] main rotor radius (for Lockheed AH-56A Cheyenne use: 15.62 / 2 m)                                                        
+helicopter_type = "conventional"  # (for Lockheed AH-56A Cheyenne use: "compound")       
+R_mr = 10.500 / 2                 # [m] main rotor radius Aérospatiale SA 341 Gazelle (for Lockheed AH-56A Cheyenne use: 15.62 / 2 m)                                                        
 S = ma.pi * R_mr**2               # [m^2] rotor disk area
 config = {
-    "ParasiteArea": [{"h":2.16, "d": 1.4, "L": 9.533}]   # fuselage dimensions Bell 505 [m] (for Lockheed AH-56A Cheyenne use: "h":3.39, "d": 2.15, "L": 16.63)
+    "ParasiteArea": [{"h":2.16, "d": 1.4, "L": 9.533}]     # fuselage dimensions Aérospatiale SA 341 Gazelle [m] (for Lockheed AH-56A Cheyenne use: "h":3.39, "d": 2.15, "L": 16.63)
 }
 L_fuselage = config["ParasiteArea"][0]["L"]                
-V_max = 86.43                                            # max speed SL [m/s] (= 168 kts) (for Lockheed AH-56A Cheyenne use: 113.178 m/s = 220 knots)
+V_max = 86.43                                              # max speed SL Aérospatiale SA 341 Gazelle [m/s] (for Lockheed AH-56A Cheyenne use: 113.178 m/s = 220 knots)
 
 # Standard atmospheric parameters at sea level
 atmosphere    = Atmosphere(0)                              # set sea level
