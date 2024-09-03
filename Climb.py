@@ -15,19 +15,16 @@
 import numpy as np
 def Helicopter_properties(Pd, Pn, MTOW, Voo):
     g = 9.81  
-    '''
-    Acceleration due to gravity
-    '''
-
-    '''
-     Function to check and replace zero values for Voo
-     '''
+   
+    #Acceleration due to gravity
+    #Function to check and replace zero values for Voo
+    
     def check_velocity(value, default=1):
         return value if value != 0 else default
 
-    '''
-    Check and replace Voo if it is zero
-    '''
+   
+    #Check and replace Voo if it is zero
+   
     Voo = check_velocity(Voo)
 
     properties = {
@@ -37,45 +34,45 @@ def Helicopter_properties(Pd, Pn, MTOW, Voo):
         "Voo": Voo,    
         "g": g        
 
-        '''
-        Available power Pd, Main and tail rotor power Pn, Maximum takeoff weight MTOW, Horizontal speed (fixed) Voo, Acceleration due to gravity g
-        '''
+       
+    #Available power Pd, Main and tail rotor power Pn, Maximum takeoff weight MTOW, Horizontal speed (fixed) Voo, Acceleration due to gravity g
+        
     }
 
     def climb():
-        '''
-         Calculate the rate of climb (ROC) in meters per second (m/s)
-         '''
+        
+         #Calculate the rate of climb (ROC) in meters per second (m/s)
+         
         ROC = (Pd - Pn) / (MTOW * g)
 
-        '''
-         Calculate the climb angle gamma in radians
-         '''
+       
+         #Calculate the climb angle gamma in radians
+         
         gamma = np.arctan(ROC / Voo)
 
-        '''
-         Convert the ROC from meters per second (m/s) to feet per minute (ft/min)
-         '''
+        
+         #Convert the ROC from meters per second (m/s) to feet per minute (ft/min)
+        
         ROC_ft_min = ROC * 3.28 * 60
 
-        '''
-         Convert the climb angle gamma from radians to degrees
-         '''
+        
+         #Convert the climb angle gamma from radians to degrees
+         
         gamma_deg = np.rad2deg(gamma)
 
-        '''
-         Return the rate of climb in feet per minute and the climb angle in degrees
-         '''
+        
+         #Return the rate of climb in feet per minute and the climb angle in degrees
+         
         return ROC_ft_min, gamma_deg
     
-    '''
-     Return the properties and the climb function
-     '''
+    
+     #Return the properties and the climb function
+     
     return properties, climb
 
-'''
- Function to run tests and display results
- '''
+
+ #Function to run tests and display results
+
 def test_Helicopter_climb(test_cases):
     for Pd, Pn, MTOW, Voo in test_cases:
         properties, climb = Helicopter_properties(Pd, Pn, MTOW, Voo)
