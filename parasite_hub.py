@@ -18,11 +18,6 @@
 
 import math as ma
 
-class Aereo:
-    def __init__(self, config, S):
-        self.config = config
-        self.S = S
-
     def hub(self):
         '''
         This function calculates the parasite drag area of the hub, assuming it as a circular section
@@ -43,7 +38,6 @@ class Aereo:
         R = self.config["ParasiteArea"][3]["R"]
         Lcs = self.config["ParasiteArea"][3]["Lcs"]
         alpha = self.config["ParasiteArea"][3]["alpha"]
-        S = self.S
 
         # Calculating the wet Area
         #the wet area corresponds to the lateral area of a cylinder
