@@ -18,15 +18,16 @@
 
 import math as ma
 
-    def hub(self):
+def hub(config, S):
         '''
         This function calculates the parasite drag area of the hub, assuming it as a circular section
         cylinder.
         
         Input:
-        -R:hub radius
-        -Lcs: hub height
-        -alpha: angle of attack
+        -config: dictionary containing the parameters:
+                 -R:hub radius
+                 -Lcs: hub height
+                 -alpha: angle of attack
         -S: reference area
         
         Output:
@@ -35,9 +36,9 @@ import math as ma
         '''
 
         # Extracting the parameters
-        R = self.config["ParasiteArea"][3]["R"]
-        Lcs = self.config["ParasiteArea"][3]["Lcs"]
-        alpha = self.config["ParasiteArea"][3]["alpha"]
+        R = config["ParasiteArea"][3]["R"]
+        Lcs = config["ParasiteArea"][3]["Lcs"]
+        alpha = config["ParasiteArea"][3]["alpha"]
 
         # Calculating the wet Area
         #the wet area corresponds to the lateral area of a cylinder
