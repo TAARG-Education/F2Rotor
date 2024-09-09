@@ -43,7 +43,7 @@ from scipy.integrate import trapezoid
 # - Cl_alpha (assumed 2*pi)
 # - Cd0 
 
-def TeoriaElemPalaRotoreUpper(r_segn, N, solidity, theta, Clalpha, Cd0):
+def BEMT_Hovering_Rotor_Upper(r_segn, N, solidity, theta, Clalpha, Cd0):
     
     # The vectors that are going to be used are here initialized.
     # This function compute the Prandtl Correction factor iteratively. Two vectors are needed to store the old and the new values.
@@ -149,7 +149,7 @@ def TeoriaElemPalaRotoreUpper(r_segn, N, solidity, theta, Clalpha, Cd0):
 # - Cd0. 
 # - lambda_i_u vector of the upper rotor.
 
-def TeoriaElemPalaRotoreLower(r_segn, r_segn_interf, N, solidity, theta, Clalpha, Cd0, lambda_i_u):
+def BEMT_Hovering_Rotor_Lower(r_segn, r_segn_interf, N, solidity, theta, Clalpha, Cd0, lambda_i_u):
 
    # The vectors that are going to be used are here initialized.
    # This function compute the Prandtl Correction factor iteratively. Two vectors are needed to store the old and the new values.
