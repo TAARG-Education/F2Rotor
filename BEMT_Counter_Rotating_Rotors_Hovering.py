@@ -32,27 +32,6 @@ from scipy.integrate import trapezoid
 # The notation 'u' will denote the upper rotor.
 # The notation 'l' will denote the upper rotor.
 
-# Number of points with which discretize the domain
-N_points = 100
-
-# Example variables for the upper rotor
-r_segn_u = np.linspace(0.1, 1, N_points) # Adimensionalized element blase distance
-N_u      = 2 # Number of blades
-solidity_u = 0.027*np.ones(N_points) # Solidity vector
-theta_u = np.deg2rad(np.linspace(0, 10, N_points)) # Twist angle vector.
-Clalpha_u = 2*np.pi 
-Cd0_u = 0.011 
-
-# Example variables for the lower rotor
-r_segn_l = np.linspace(0.1, 1, N_points) # Adimensionalized element blase distance
-N_l      = 2 # Number of blades
-solidity_l = 0.027*np.ones(N_points) # Solidity vector
-theta_l = np.deg2rad(np.linspace(0, 10, N_points)) # Twist angle vector.
-Clalpha_l = 2*np.pi 
-Cd0_l = 0.011 
-
-r_segn_interf = 0.81 # Distance of the element of the blades that are affected by the wake of the upper rotor.
-
 # The inputs of the function are:
 # - (r_segn_u, r_segn_l): arrays that define the normalised blade element distance from the axis of the rotor or the hub
 # - (N_u, N_l): Number of blades
