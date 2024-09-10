@@ -67,34 +67,3 @@ def compute_beta_coefficients(gamma, theta_0, theta_tw, mu, lamb, omega, t):
 
     return beta_0, beta_1c, beta_1s, beta
 
-# Parametri di test
-gamma = 9        # Numero di Lock
-theta_0_values = [0.1, 0.2, 0.3]  # Angolo di picco collettivo in radianti
-theta_tw = 0.05  # Angolo di twist della pala in radianti
-mu = 0.1         # Rapporto di avanzamento
-lamb = 0.2       # Rapporto di inflow
-omega = 2.0      # Velocità angolare in rad/s
-t = np.linspace(0, 2 * np.pi / omega, 100)  # Intervallo di tempo per un ciclo completo
-
-# Plot di beta per diversi valori di theta_0
-plt.figure(figsize=(12, 6))
-
-for theta_0 in theta_0_values:
-    beta_0, beta_1c, beta_1s, beta = compute_beta_coefficients(gamma, theta_0, theta_tw, mu, lamb, omega, t)
-
-    # Stampa dei coefficienti
-    print(f"Theta_0: {theta_0}")
-    print(f"  beta_0: {beta_0}")
-    print(f"  beta_1c: {beta_1c}")
-    print(f"  beta_1s: {beta_1s}")
-    
-    # Plot di beta in funzione di psi
-    plt.plot(t, beta, label=f'Theta_0 = {theta_0} rad')
-
-plt.xlabel('Tempo (s)')
-plt.ylabel('Coefficienti di Flapping (beta)')
-plt.title('Coefficiente di Flapping Beta in funzione del Tempo per diversi Theta_0')
-plt.legend()
-plt.grid(True)
-plt.show()
-plt.show()
