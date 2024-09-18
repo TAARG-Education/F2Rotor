@@ -25,7 +25,6 @@
 # Version: 1.0.0
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def compute_beta_coefficients(gamma, theta_0, theta_tw, mu, lamb, omega, t):
