@@ -1,5 +1,5 @@
 import math as ma
-from parasite_rods_new import landing_rods
+from parasite_rods import landing_rods
 
 # Test class for the helicopter configuration
 class HelicopterConfig:
