@@ -2,8 +2,12 @@
 
  
 #Authors: Alessandra Di Rauso, Sara Vitale
-    #Date: 16/06/2024
-    #Version: 1.00
+#Date: 16/06/2024
+#Version: 1.00
+#Modified by Alessio Ferrara
+#Date: 02/10/2024
+
+import Climb
 
 Pd = 1000  
 Pn = 200   
@@ -15,7 +19,7 @@ Voo = 70
 
  #Create the Helicopter object with the provided data
 
-properties, climb = Helicopter_properties(Pd, Pn, MTOW, Voo)
+properties, climb = Climb.Helicopter_properties(Pd, Pn, MTOW, Voo)
 
 
  #Calculate the rate of climb and the climb angle
@@ -39,4 +43,4 @@ test_cases = [
 ]
 
 print("Test with other scenarios:")
-test_Helicopter_climb(test_cases)
+Climb.test_Helicopter_climb(test_cases)
