@@ -1,14 +1,20 @@
+    #Function that evaluates the endurance with a fixed amount of fuel at different speeds of flight. 
+    #The function requires as input the array of the Speed of Flight, the Fuel Weight, the Specific Fuel Consumption and the Required Power. 
+    #The input data values ​​must be in m/s, Kg, kg/KW*h and KW, respectively.
+    #The function returns the maximum Time of Flight for each Speed.
+    #The output data is provided in min.
+    
+    #Authors: Davide Sergio, Carmine Marra
+    #Date: 23/09/2024
+    #Version: 1.00
+    
+    #The theory behind this code can be found in: Giovanni Di Giorgio - "Lezioni integrative dell'insegnamento di Aerodinamica dell'Ala Rotante" - a.a. 2023/2024 - pages 87.
+
 import numpy as np
 
 def Endurance(Pn, Wfuel, Voo):
-    """
-
-    Function that evaluates the endurance with a fixed amount of fuel at different speeds of flight. 
-    The function requires as input the array of the Speed of Flight, the Fuel Weight, the Specific Fuel Consumption and the Required Power. 
-    The input data values ​​must be in m/s, Kg, kg/KW*h and KW, respectively.
-    The function returns the maximum Time of Flight for each Speed.
-    The output data is provided in min.
     
+    """
     Input:
     Pn    = Required Power[KWatt]
     Wfuel = Fuel Weight [Kg]
@@ -16,13 +22,9 @@ def Endurance(Pn, Wfuel, Voo):
 
     Output:
     Endurance: Time of flight Array for any given speed.
-
-    The theory behind this code can be found in: Giovanni Di Giorgio - "Lezioni integrative dell'insegnamento di Aerodinamica dell'Ala Rotante" - a.a. 2023/2024 - pages 87.
-
-    Authors: Davide Sergio, Carmine Marra
-    Date: 23/09/2024
-    Version: 1.00
+    
     """
+
     P_s = Pn            # Power [KW]
     Wfuel_kg = Wfuel    # Fuel Weight [Kg]
     SFC = 0.458         # Specific Fuel Consumption (Constant)
@@ -34,3 +36,4 @@ def Endurance(Pn, Wfuel, Voo):
         time = t_i
         i +=1
     return time
+
