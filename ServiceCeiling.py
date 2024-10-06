@@ -3,21 +3,31 @@
 # Professor: Renato Tognaccini
 # Supervisor: Ing. Ettore Saetta, Ing. Michele Massa
 # Academic Year: 2023-2024
-
+#
 # This function computes the theoretical maximum altitude and the practical maximum altitude (or ceilings) of an helicopter in advance 
-# (i.e. in forward flight). 
+# (i.e. in forward flight). It computes the absolute value of the minimum difference between a set of maximum rates of climb, computed 
+# at different altitudes, and the rate of climb defined at the theoretical or the practical altitude. When this condition is found, 
+# the function computes the altitude corresponding to that rate of climb value. 
+# The maximum rate of climb is defined as the maximum difference between the necessary power curve and the available power curve. 
+# So basically, the theoretical maximum altitude or the practical maximum altitude are the altitudes in which the rates of climb are 0ft/min 
+# or 100ft/min, as definition, or the altitudes at which the available power curve is tangent to the minimum value of the necessary power curve. 
+#
 # The function takes in input a set of maximum rates of climb (here defined as Vcmax (maximum climb speeds)) evaluated at different altitudes 
 # and the set of altitudes.  
 # The function output is:
-#   -SC_theo = the theoretical maximum altitude, considering fixed weight, at which the maximum climb speed (Vcmax_theo) is zero.
+#   -SC_theo = the theoretical maximum altitude, considering fixed weight, at which the maximum climb speed (Vcmax_theo) is 0 ft/min.
 #    In other words is the maximum altitude that the helicopter can reach in theory.
 #   -SC_prac = the practical maximum altitude, considering fixed weight, at which the maximum climb speed (Vcmax_prac) is 100 ft/min. 
 #
 # 
-# Documentation: "Lezioni integrative dell'insegnamento di Aerodinamica dell'Ala Rotante" - a.a. 2023/2024 - page 90-91.
-# 
+# Documentation:
+# - Lezioni di Aerodinamica dell'ala rotante, Prof.Renato Tognaccini, a.a. 2023-2024, vers. 2.05,
+# Chapter 7: Il rotore rigido in volo traslato, pp.95-103.
+# Giovanni Di Giorgio - "Lezioni integrative dell'insegnamento di Aerodinamica dell'Ala Rotante" - a.a. 2023/2024 - page 89-91.
+#
+#  
 # Author: Alessio Ferrara
-# Last change: 02/10/2024
+# Last change: 06/10/2024
 
 
 import numpy as np
