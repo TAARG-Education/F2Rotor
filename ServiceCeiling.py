@@ -8,9 +8,11 @@
 # (i.e. in forward flight). It computes the absolute value of the minimum difference between a set of maximum rates of climb, computed 
 # at different altitudes, and the rate of climb defined at the theoretical or the practical altitude. When this condition is found, 
 # the function computes the altitude corresponding to that rate of climb value. 
-# The maximum rate of climb is defined as the maximum difference between the necessary power curve and the available power curve. 
+# The maximum rate of climb is defined as the maximum difference between the available power curve and the necessary power curve, divided by 
+# the weight of the helicopter. 
 # So basically, the theoretical maximum altitude or the practical maximum altitude are the altitudes in which the rates of climb are 0ft/min 
-# or 100ft/min, as definition, or the altitudes at which the available power curve is tangent to the minimum value of the necessary power curve. 
+# or 100ft/min (0m/s or 0,508m/s), as definition, or the altitudes at which the available power curve is tangent to the minimum value of the 
+# necessary power curve. 
 #
 # The function takes in input a set of maximum rates of climb (here defined as Vcmax (maximum climb speeds)) evaluated at different altitudes 
 # and the set of altitudes.  
@@ -27,16 +29,16 @@
 #
 #  
 # Author: Alessio Ferrara
-# Last change: 06/10/2024
+# Last change: 07/10/2024
 
 
 import numpy as np
 
 
-def ServiceCeiling(Vcmax,h):
+def ServiceCeiling_function(Vcmax,h):
 
-    Vcmax_theo = 0                                              # Climb speed at theoretical maximum altitude (ft/min)
-    Vcmax_prac = 100                                            # Climb speed at practical maximum altitude (ft/min)
+    Vcmax_theo = 0                                              # Climb speed at theoretical maximum altitude (m/s)
+    Vcmax_prac = 0.508                                          # Climb speed at practical maximum altitude (m/s)
 
 
     index_theo = np.argmin(np.abs(Vcmax - Vcmax_theo))          # Computation of the position in the climb speed array of the minimum absolute value of the
