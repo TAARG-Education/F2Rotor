@@ -63,7 +63,7 @@ R = 5.5                                                                # Radius 
 A = math.pi*R**2                                                       # Area of the disk rotor
 sigma = 0.0775                                                         # Solidity of disk rotor
 omega = 40.29                                                          # Angular rotor speed (1/sec)
-Cd_mean = 0.07                                                         # Assumed value of drag coefficient
+Cd_mean = 0.012                                                         # Assumed value of drag coefficient
 f_over_A = 0.009                                                       # f_over_A value
 
 
@@ -226,17 +226,6 @@ for j in range(H):
 
 
 
-plt.figure(1)
-plt.plot(V_inf,P_o)
-
-plt.figure(2)
-#plt.plot(V_inf,P_n[:,H-1])
-
-plt.show()
-
-
-
-
 # Computation of max rate of climb
 
 '''
@@ -292,7 +281,7 @@ for j in range(H):                                                        # Comp
 
         properties, climb = Climb.Helicopter_properties(Pd, Pn, MTOW, V_inf[i])
     
-        ROC, gamma = climb()                                              # Call to function climb. The ROC is expressed in ft/min. gamma in degrees
+        ROC, _ = climb()                                              # Call to function climb. The ROC is expressed in ft/min. gamma in degrees
 
     ROC_max[j] = ROC*0.00508                                              # Computation of the array of the maximum rates of climb at each altitude in m/s
 
