@@ -45,7 +45,7 @@ are computed for different altitudes values. Than is performed the sum of all th
 # Computation of density values
 
 max_alt = 8000                                                         # Max altitude at which the power will be computed (m)
-H = 100                                                                # Number of intervals in which altitude array is divided
+H = 500                                                                # Number of intervals in which altitude array is divided (Keep this value high: 500 or higher)
 h_values = np.linspace(0, max_alt, H)                                  # Definition of uniform altitudes array from 0 (m) to max_alt
 
 atmosphere = Atmosphere(h_values)                                      # Computation of density values at the altitude values defined in h_values
@@ -231,9 +231,9 @@ for j in range(H):
 '''
 The following code computes maximum rates of climb at different altitudes. These values are the ones necessary for the computation of the theoretical 
 and practical altitude. Because of the reduction of the air density with the increment of the altitude, it is expected an increment of necessary power
-for a level flight and so a reduction of the maximum rates of climb. The maximum rate of climb is defined as the maximum difference between the available 
+for a level flight at slow speeds and a reduction of available power (it is assumed a variation equal to the density variation with altitude).
+For this reason there will be a reduction of the maximum rates of climb. The maximum rate of climb is defined as the maximum difference between the available 
 power curve and the necessary power curve, divided by the weight of the helicopter. 
-It is assumed that the available power is constant with altitude.
 (Note: see "Climb.py" for further information about the form and theory beyond the equation used)
 
 '''
@@ -261,7 +261,8 @@ for j in range(H):                                                        # Comp
 They are now computed the maximum rates of climb using the feature "Climb.py". 
 
 Input:
-    - Pd: available power. This is the total power output provided by the helicopter's engines. It is assumed constant with altitude.
+    - Pd: available power. This is the total power output provided by the helicopter's engines. It is assumed a variation equal to density variation with
+    altitude.
     - P_n_min: array of the necessary power minimum values at each altitude. 
     - MTOW: maximum takeoff weight (kg). This is the maximum weight at which the helicopter is certified to take off.
     - V_inf: horizontal flight speed. This is the speed at which the helicopter is moving horizontally.
@@ -269,19 +270,20 @@ Input:
 '''
 
 
-Pd = 544270                                                               # Available power. (W)
+Pd_sl = 544270                                                            # Available power sea level. (W)
 ROC_max = np.zeros(H)                                                     # Definition of the array of the maximum rates of climb at each altitude
-
 
 for j in range(H):                                                        # Computation of the maximum rate of climb at each altitude
 
     Pn = P_n_min[j]
 
+    Pd = Pd_sl*rho_values[j]/rho_values[0]                                # Computation of available power at a specific altitude
+
     for i in range(N):
 
         properties, climb = Climb.Helicopter_properties(Pd, Pn, MTOW, V_inf[i])
     
-        ROC, _ = climb()                                              # Call to function climb. The ROC is expressed in ft/min. gamma in degrees
+        ROC, _ = climb()                                                  # Call to function climb. The ROC is expressed in ft/min. 
 
     ROC_max[j] = ROC*0.00508                                              # Computation of the array of the maximum rates of climb at each altitude in m/s
 
@@ -306,6 +308,8 @@ theo_alt, prac_alt = ServiceCeiling_function(ROC_max, h_values)
 print('Theoretical altitude: ', theo_alt, 'm' )
 print('-------------------')
 print('Practical altitude: ', prac_alt, 'm' )
+print('-------------------')
+
 
 
 
