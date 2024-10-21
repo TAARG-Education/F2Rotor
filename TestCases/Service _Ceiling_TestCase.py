@@ -211,6 +211,8 @@ for j in range(H):
 
 '''
 It is here computed the sum of the necessary power contributions of an helicopter in advance with a condition of level flight.
+For a better evaluation of the total necessary power and so a better extimation of the service ceilings, it is needed to take into account also a value 
+of power associated to the auxiliary systems on board of the helicopter. This value is assumed as a constant equal to 20000 W.
 The necessary power is defined as: P_n = P_i + P_0 + P_f and it is computed for different altitudes.
 
 '''
@@ -218,11 +220,14 @@ The necessary power is defined as: P_n = P_i + P_0 + P_f and it is computed for 
 
 P_n = np.zeros((N,H))                                                     # Definition of the necessary power matrix
 
+P_aux = 20000                                                             # Auxiliary power systems value (W)
+
 for j in range(H):    
 
     for i in range(N):  
 
-        P_n[i,j] = P_i[i,j]+P_o[i,j]+P_f[i,j]                             # Computation of the P_n matrix
+        P_n[i,j] = P_i[i,j]+P_o[i,j]+P_f[i,j]+P_aux                       # Computation of the P_n matrix
+
 
 
 
