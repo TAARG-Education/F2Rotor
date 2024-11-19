@@ -59,7 +59,6 @@ def BladeSection_alpha_Mach(Omega, R, lambda_, r_segn, beta, dbeta, mu, psi, the
         V_eff (2D array): Effective velocity at each blade section.
         non_stall (2D array): Blade regions not in stall (NaN for stalled sections).
         M (2D array): Mach number at each blade section.
-        M_cr (2D array): Placeholder array for critical Mach numbers (not calculated).
     """
     # Use ambiance to calculate atmospheric properties at the given altitude
     atmosphere = Atmosphere(h)
@@ -99,7 +98,6 @@ def BladeSection_alpha_Mach(Omega, R, lambda_, r_segn, beta, dbeta, mu, psi, the
     stall = np.zeros((len(r_segn), len(psi)))  # Rotor blade's stalled region
     non_stall = np.full((len(r_segn), len(psi)), np.nan)  # Non-stalled region of the blade
     M = np.full((len(r_segn), len(psi)), np.nan)
-    M_cr = np.full((len(r_segn), len(psi)), np.nan)
 
     # Determine stalled and non-stalled sections, calculate Mach numbers
     for iii in range(len(r_segn)):
@@ -110,4 +108,4 @@ def BladeSection_alpha_Mach(Omega, R, lambda_, r_segn, beta, dbeta, mu, psi, the
                 non_stall[iii, jjj] = alpha_e[iii, jjj]
             M[iii, jjj] = V_eff[iii, jjj] / a_inf
 
-    return alpha_e, phi, u_P, u_T, u_R, V_eff, non_stall, M, M_cr
+    return alpha_e, phi, u_P, u_T, u_R, V_eff, non_stall, M
