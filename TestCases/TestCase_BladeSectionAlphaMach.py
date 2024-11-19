@@ -31,7 +31,7 @@ alpha_stall_lo = -15.0  # Lower stall angle in degrees
 h = 1000.0  # Altitude in meters
 
 # Execute BladeSection_alpha_Mach function with the test parameters
-alpha_e, phi, u_P, u_T, u_R, V_eff, non_stall, M, M_cr = BladeSection_alpha_Mach(
+alpha_e, phi, u_P, u_T, u_R, V_eff, non_stall, M = BladeSection_alpha_Mach(
     Omega, R, lambda_, r_segn, beta, dbeta, mu, psi, theta, alpha_stall_up, alpha_stall_lo, h
 )
 
