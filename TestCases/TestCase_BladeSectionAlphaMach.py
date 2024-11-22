@@ -1,17 +1,16 @@
-"""
 
-    Test case for the BladeSection_alpha_Mach function.
+    #Test case for the BladeSection_alpha_Mach function.
 
-    This test case verifies the function's ability to compute aerodynamic properties,
-    including angle of attack, velocity components, Mach number, and stall regions,
-    for different radial and azimuthal positions along a rotor blade.
+    #This test case verifies the function's ability to compute aerodynamic properties,
+    #including angle of attack, velocity components, Mach number, and stall regions,
+    #for different radial and azimuthal positions along a rotor blade.
 
-    Author: Andrea Malafronte
-    Rotary Wing Aerodynamics course, prof. Renato Tognaccini
-    University of Naples Federico II
-    Academic Year 2023-2024
+    #Author: Andrea Malafronte
+    #Rotary Wing Aerodynamics course, prof. Renato Tognaccini
+    #University of Naples Federico II
+    #Academic Year 2023-2024
 
-"""
+
 
 import numpy as np
 from bladeSection_alpha_mach import BladeSection_alpha_Mach
