@@ -1,3 +1,4 @@
+from ambiance import Atmosphere
 import numpy as np
 from sympy import symbols, Eq, solve, atan, sin, cos
 from scipy.constants import g, pi
