@@ -25,12 +25,18 @@ def ContraFW1(V_inf, N_contra, R, M, w_h, height, f, Omega, Pci_h, Pc0_h):
     # Calculation of the rotor disk area
     A = pi * R**2
 
-    # Function to obtain air density based on altitude (simple approximation)
+     # Function to obtain air density based on altitude
     def air_density_at_altitude(h):
-        if h <= 11000:  # Troposphere
-            return 1.225 * (1 - 0.0000225577 * h)**4.2561
-        else:
-            return 0.36391 * np.exp(-0.0001577 * (h - 11000))
+        """
+        Calculate air density at a given altitude using the ambiance library
+        (based on the International Standard Atmosphere - ISA model).
+        
+        """
+        if h < 0:
+            raise ValueError("Altitude cannot be negative.")
+        # Use the ambiance library to calculate air density.
+        atmosphere = Atmosphere(h)
+        return atmosphere.density[0]  # Estrae la densità in kg/m^3
 
     rho_inf = air_density_at_altitude(height)
 
@@ -86,9 +92,3 @@ def ContraFW1(V_inf, N_contra, R, M, w_h, height, f, Omega, Pci_h, Pc0_h):
             P_fus_old.append(None)
 
     return P_old, P_i_old, P_0_old, P_fus_old
-
-# Printing results for verification
-print("Total Required Power (P_old):", P_old)
-print("Induced Power (P_i_old):", P_i_old)
-print("Profile Power (P_0_old):", P_0_old)
-print("Fuselage Power (P_fus_old):", P_fus_old)
