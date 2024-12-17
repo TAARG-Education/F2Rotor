@@ -1,3 +1,20 @@
+# Organization: Universita' degli Studi di Napoli - Federico II, Dipartimento di Ingegneria Industriale, Ingegneria Aerospaziale
+# Course: Aerodinamica dell'ala rotante
+# Professor: Renato Tognaccini
+# Supervisors: Ing. Ettore Saetta, Ing. Michele Massa
+# Academic Year: 2023-2024
+
+# Description: This file defines the function `ContraFW1`, which calculates the total required power for an aircraft with coaxial contra-rotating rotors in forward flight.
+# The function also provides detailed breakdowns of power components such as induced power, profile power, and fuselage power.
+
+# Documentation:
+# - Lezioni di Aerodinamica dell'ala rotante, Prof. Renato Tognaccini, a.a. 2023-2024, vers. 2.05,
+#   Chapter 6.10: Rotori controrotanti in hover.
+# -Principles of Helicopter Aerodynamics, 
+# Section 5.5.11, Leishman,
+# Authors: Rusciano Giuseppe, Schioppa Danilo
+
+
 from ambiance import Atmosphere
 import numpy as np
 from sympy import symbols, Eq, solve, atan, sin, cos
