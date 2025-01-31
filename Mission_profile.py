@@ -115,12 +115,12 @@ def Mission_profile(Helicopter, SFC, Pd, height_c, MTOW, Voo, Voo_d, height_h, t
             - The angle of descent during the descent phase.
     """
 
-    atmosphere = Atmosphere(height_h)                                  # Initialize atmospheric properties at the hover altitude
-    rho_inf = atmosphere.density[0]                                    # Air density at hover altitude (kg/m^3)
-    f = f_A * (4 * A)                                                  # Equivalent flat plate area for drag calculations (m^2)
-    meters_to_feet = 3.28                                              # Conversion factor from meters to feet
-    meters_to_nautical_miles = 0.00054                                 # Conversion factor from meters to nautical miles
-    meters_per_second_to_knots = 1.944                                 # Conversion factor from meters per second to knots
+    atmosphere = Atmosphere(height_h)            # Initialize atmospheric properties at the hover altitude
+    rho_inf = atmosphere.density[0]              # Air density at hover altitude (kg/m^3)
+    f = f_A * (4 * A)                            # Equivalent flat plate area for drag calculations (m^2)
+    meters_to_feet = 3.28                        # Conversion factor from meters to feet
+    meters_to_nautical_miles = 0.00054           # Conversion factor from meters to nautical miles
+    meters_per_second_to_knots = 1.944           # Conversion factor from meters per second to knots
 
 
                                                                     
@@ -128,14 +128,14 @@ def Mission_profile(Helicopter, SFC, Pd, height_c, MTOW, Voo, Voo_d, height_h, t
 
     P_parasite = 0.5 * rho_inf * f * Voo**3                                                 # Parasite power in climb
     vi = np.sqrt(-0.5 * Voo**2 + 0.5 * np.sqrt(Voo**4 + 4 * (W / (2 * rho_inf * A))**2))    # Induced velocity in climb
-    P_induced = 1.2 * W * vi                                                                # Induced  and profile power in climb
+    P_induced = 1.2 * W * vi                                                      # Induced  and profile power in climb
     P_profile = (1/8) * rho_inf * Helicopter.Cd0 * N * c[0] * R * (Omega*R)**3 * (1 + 4.7 * (Voo / (Omega*R))**2)  
     Pn_c = P_parasite + P_induced + P_profile                                               # Required power during climb
 
     result_c = Helicopter_properties(Pd, Pn_c, MTOW, Voo)           # Get helicopter properties for climb phase
     properties, climb = result_c                                    # Retrieve data from result climb vector
                                                                              
-    ROC_ft_min, gamma_deg = climb()                                 # Climb function to get Rate of Climb (ft/min) and climb angle (deg)
+    ROC_ft_min, gamma_deg = climb()                                 # Get Rate of Climb (ft/min) and climb angle (deg)
     ROC = (ROC_ft_min) / (3.28 * 60)                                # Convert Rate of Climb to m/s
     gamma = np.deg2rad(gamma_deg)                                   # Convert climb angle to radians
     TAS_c = (ROC**2 + Voo**2)**0.5                                  # True Airspeed during climb (m/s)
@@ -150,7 +150,7 @@ def Mission_profile(Helicopter, SFC, Pd, height_c, MTOW, Voo, Voo_d, height_h, t
     # Hover
 
     V_infty = 0 
-    result_h = BEMT_Hover(Helicopter, V_infty)                                       # Retrieve the function for hover data with BEMT       
+    result_h = BEMT_Hover(Helicopter, V_infty)                        # Retrieve the function for hover data with BEMT       
 
     (Tc, Pc_i, Pc0, Qc, dTcdr_bar_PR, dPcdr_bar, FM, _) = result_h
 
@@ -174,31 +174,31 @@ def Mission_profile(Helicopter, SFC, Pd, height_c, MTOW, Voo, Voo_d, height_h, t
     Omega_new, alpha_e_vec, dTc, U_P, dH_dpsi_0, dQ_dpsi_0,
     T_vec, Y_vec, Q_vec, dT_dr, dQ_dr, psi) = result_f  
     
-    Vinf = Vinf_vec[-1]                                                                   # Assigned speed from speed vector (m/s)
-    time_f = dist_f / Vinf_vec[-1]                                                        # Cruising time (s)
-    Pn_f = P[-1]                                                                          # Required power (W)
-    power_rate_f = Pn_f/Pd * 100                                                          # Power rate for cruise (%)
-    F_flow_f = SFC * (Pn_f/1000)                                                          # Fuel flow for cruise (kg/h)
-    F_used_f = (time_f/3600) * F_flow_f                                                   # Fuel used for cruise (kg)
-    GW_f = GW_c - F_used_f                                                                # Remaining gross weight after cruise (Kg)
+    Vinf = Vinf_vec[-1]                                                 # Assigned speed from speed vector (m/s)
+    time_f = dist_f / Vinf_vec[-1]                                      # Cruising time (s)
+    Pn_f = P[-1]                                                        # Required power (W)
+    power_rate_f = Pn_f/Pd * 100                                        # Power rate for cruise (%)
+    F_flow_f = SFC * (Pn_f/1000)                                        # Fuel flow for cruise (kg/h)
+    F_used_f = (time_f/3600) * F_flow_f                                 # Fuel used for cruise (kg)
+    GW_f = GW_c - F_used_f                                              # Remaining gross weight after cruise (Kg)
 
     # Descend
 
     W = GW_f * g
-    Pn_d = 0.5 * Pn_h                                                                     # Power required during descent, assumed to be half of hovering power
-    result_d = Helicopter_properties(Pd, Pn_d, MTOW, Voo_d)                               # Retrieve the function from the helicopter properties
-    properties, descend = result_d                                                        # Retrieve data from result descend vector
-    ROD_ft_min, gamma_deg_d = descend()                                                   # Call the descent function to get Rate of Descent and angle
-    ROD = w_h / 2                                                                         # Rate of Descent assumed as half the induced velocity in hover
+    Pn_d = 0.5 * Pn_h                                            # Power required during descent, assumed to be half of hovering power
+    result_d = Helicopter_properties(Pd, Pn_d, MTOW, Voo_d)      # Retrieve the function from the helicopter properties
+    properties, descend = result_d                               # Retrieve data from result descend vector
+    ROD_ft_min, gamma_deg_d = descend()                          # Call the descent function to get Rate of Descent and angle
+    ROD = w_h / 2                                                # Rate of Descent assumed as half the induced velocity in hover
 
-    power_rate_d = Pn_d / Pd * 100                                                        # Power rate during descent (%)
-    TAS_d = (ROD**2 + Voo**2)**0.5                                                        # True Airspeed during descent (m/s)
-    time_d = (height_f - height_d) / TAS_d                                                # Time required for descent (s)
-    dist_d = Voo_d * time_d                                                               # Horizontal distance covered during descent (m)
-    F_flow_d = SFC * (Pn_d / 1000)                                                        # Fuel flow during descent (kg/h)
-    F_used_d = (time_d / 3600) * F_flow_d                                                 # Fuel used during descent (kg)
-    GW_d = GW_f - F_used_d                                                                # Remaining gross weight after descent (kg)
-    GW_h = GW_d - F_used_h                                                                # Remaining gross weight after the next hover phase (kg)
+    power_rate_d = Pn_d / Pd * 100                               # Power rate during descent (%)
+    TAS_d = (ROD**2 + Voo**2)**0.5                               # True Airspeed during descent (m/s)
+    time_d = (height_f - height_d) / TAS_d                       # Time required for descent (s)
+    dist_d = Voo_d * time_d                                      # Horizontal distance covered during descent (m)
+    F_flow_d = SFC * (Pn_d / 1000)                               # Fuel flow during descent (kg/h)
+    F_used_d = (time_d / 3600) * F_flow_d                        # Fuel used during descent (kg)
+    GW_d = GW_f - F_used_d                                       # Remaining gross weight after descent (kg)
+    GW_h = GW_d - F_used_h                                       # Remaining gross weight after the next hover phase (kg)
 
     # Forward flight 2
 
@@ -220,8 +220,8 @@ def Mission_profile(Helicopter, SFC, Pd, height_c, MTOW, Voo, Voo_d, height_h, t
     # Output vectors
  
     climb_data = {
-            "Altitude": "To " + f"{round(height_c * meters_to_feet)}",              # Round the value to the nearest integer for better readability
-            "Speed ": round(TAS_c,1),                                               # Round the value to 1 decimal place for better readability
+            "Altitude": "To " + f"{round(height_c * meters_to_feet)}",   # Round the value to the nearest integer for better readability
+            "Speed ": round(TAS_c,1),                                    # Round the value to 1 decimal place for better readability
             "Distance": round(dist_c * meters_to_nautical_miles,1),
             "Time": round(time_c),
             "Power Rating": "MCP",
