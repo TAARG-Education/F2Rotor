@@ -126,44 +126,44 @@ def Mission_profile(Helicopter, SFC, Pd, height_c, MTOW, Voo, Voo_d, height_h, t
                                                                     
     # Climb
 
-    P_parasite = 0.5 * rho_inf * f * Voo**3                                                                         # Parasite power in climb
-    vi = np.sqrt(-0.5 * Voo**2 + 0.5 * np.sqrt(Voo**4 + 4 * (W / (2 * rho_inf * A))**2))                            # Induced velocity in climb
-    P_induced = 1.2 * W * vi                                                                                        # Induced power in climb
-    P_profile = (1/8) * rho_inf * Helicopter.Cd0 * N * c[0] * R * (Omega*R)**3 * (1 + 4.7 * (Voo / (Omega*R))**2)   # Profile power required 
-    Pn_c = P_parasite + P_induced + P_profile                                                                       # Required power during climb
+    P_parasite = 0.5 * rho_inf * f * Voo**3                                                 # Parasite power in climb
+    vi = np.sqrt(-0.5 * Voo**2 + 0.5 * np.sqrt(Voo**4 + 4 * (W / (2 * rho_inf * A))**2))    # Induced velocity in climb
+    P_induced = 1.2 * W * vi                                                                # Induced  and profile power in climb
+    P_profile = (1/8) * rho_inf * Helicopter.Cd0 * N * c[0] * R * (Omega*R)**3 * (1 + 4.7 * (Voo / (Omega*R))**2)  
+    Pn_c = P_parasite + P_induced + P_profile                                               # Required power during climb
 
-    result_c = Helicopter_properties(Pd, Pn_c, MTOW, Voo)                                 # Get helicopter properties for climb phase
-    properties, climb = result_c                                                          # Retrieve data from result climb vector
+    result_c = Helicopter_properties(Pd, Pn_c, MTOW, Voo)           # Get helicopter properties for climb phase
+    properties, climb = result_c                                    # Retrieve data from result climb vector
                                                                              
-    ROC_ft_min, gamma_deg = climb()                                                       # Climb function to get Rate of Climb (ft/min) and climb angle (deg)
-    ROC = (ROC_ft_min) / (3.28 * 60)                                                      # Convert Rate of Climb to m/s
-    gamma = np.deg2rad(gamma_deg)                                                         # Convert climb angle to radians
-    TAS_c = (ROC**2 + Voo**2)**0.5                                                        # True Airspeed during climb (m/s)
-    power_rate_c = Pn_c / Pd * 100                                                        # Power rate in climb (%)
-    time_c = height_c / TAS_c                                                             # Time required for climb (s)
-    dist_c = Voo * time_c                                                                 # Horizontal distance covered during climb (m)
-    F_flow_c = SFC * (Pn_c / 1000)                                                        # Fuel flow during climb (kg/h)
-    F_used_c = (time_c / 3600) * F_flow_c                                                 # Fuel used during climb (kg)
-    GW_c = W / 9.81 - F_used_c                                                            # Remaining gross weight after climb (kg)
+    ROC_ft_min, gamma_deg = climb()                                 # Climb function to get Rate of Climb (ft/min) and climb angle (deg)
+    ROC = (ROC_ft_min) / (3.28 * 60)                                # Convert Rate of Climb to m/s
+    gamma = np.deg2rad(gamma_deg)                                   # Convert climb angle to radians
+    TAS_c = (ROC**2 + Voo**2)**0.5                                  # True Airspeed during climb (m/s)
+    power_rate_c = Pn_c / Pd * 100                                  # Power rate in climb (%)
+    time_c = height_c / TAS_c                                       # Time required for climb (s)
+    dist_c = Voo * time_c                                           # Horizontal distance covered during climb (m)
+    F_flow_c = SFC * (Pn_c / 1000)                                  # Fuel flow during climb (kg/h)
+    F_used_c = (time_c / 3600) * F_flow_c                           # Fuel used during climb (kg)
+    GW_c = W / 9.81 - F_used_c                                      # Remaining gross weight after climb (kg)
                       
    
     # Hover
 
     V_infty = 0 
-    result_h = BEMT_Hover(Helicopter, V_infty)                                             # # Retrieve the function for hover data with BEMT       
+    result_h = BEMT_Hover(Helicopter, V_infty)                                       # Retrieve the function for hover data with BEMT       
 
     (Tc, Pc_i, Pc0, Qc, dTcdr_bar_PR, dPcdr_bar, FM, _) = result_h
 
-    Omega_h = np.sqrt(W / (rho_inf * R**2 * A * Tc))                                       # Hover angular velocity [rad/s].
-    lambda_i = np.sqrt(Tc / 2)                                                             # Axial interference factor
-    w_h = lambda_i * Omega_h * R                                                           # Induced velocity in hover [m/s]
+    Omega_h = np.sqrt(W / (rho_inf * R**2 * A * Tc))                                 # Hover angular velocity [rad/s].
+    lambda_i = np.sqrt(Tc / 2)                                                       # Axial interference factor
+    w_h = lambda_i * Omega_h * R                                                     # Induced velocity in hover [m/s]
 
-    P_ih = Pc_i * rho_inf * Omega_h**3 * R**3 * A                                          # Power in hovering (W)
-    Pn_h = P_ih + Pc0                                                                      # Required power in hovering (W)
+    P_ih = Pc_i * rho_inf * Omega_h**3 * R**3 * A                                    # Power in hovering (W)
+    Pn_h = P_ih + Pc0                                                                # Required power in hovering (W)
     
-    power_rate_h = Pn_h/Pd * 100                                                           # Power rate in hovering (%)
-    F_flow_h = SFC * (Pn_h/1000)                                                           # Fuel flow in hovering (kg/h)
-    F_used_h = (time_h/3600) * F_flow_h                                                    # Fuel used in hovering (Kg)
+    power_rate_h = Pn_h/Pd * 100                                                     # Power rate in hovering (%)
+    F_flow_h = SFC * (Pn_h/1000)                                                     # Fuel flow in hovering (kg/h)
+    F_used_h = (time_h/3600) * F_flow_h                                              # Fuel used in hovering (Kg)
 
     # Forward flight
 
