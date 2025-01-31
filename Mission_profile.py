@@ -185,20 +185,20 @@ def Mission_profile(Helicopter, SFC, Pd, height_c, MTOW, Voo, Voo_d, height_h, t
     # Descend
 
     W = GW_f * g
-    Pn_d = 0.5 * Pn_h                                            # Power required during descent, assumed to be half of hovering power
-    result_d = Helicopter_properties(Pd, Pn_d, MTOW, Voo_d)      # Retrieve the function from the helicopter properties
-    properties, descend = result_d                               # Retrieve data from result descend vector
-    ROD_ft_min, gamma_deg_d = descend()                          # Call the descent function to get Rate of Descent and angle
-    ROD = w_h / 2                                                # Rate of Descent assumed as half the induced velocity in hover
+    Pn_d = 0.5 * Pn_h                                 # Power required during descent assumed half of hovering power
+    result_d = Helicopter_properties(Pd, Pn_d, MTOW, Voo_d)   # Retrieve the function from the helicopter properties
+    properties, descend = result_d                            # Retrieve data from result descend vector
+    ROD_ft_min, gamma_deg_d = descend()                 # Call the descent function to get Rate of Descent and angle
+    ROD = w_h / 2                                       # Rate of Descent assumed as half the induced velocity in hover
 
-    power_rate_d = Pn_d / Pd * 100                               # Power rate during descent (%)
-    TAS_d = (ROD**2 + Voo**2)**0.5                               # True Airspeed during descent (m/s)
-    time_d = (height_f - height_d) / TAS_d                       # Time required for descent (s)
-    dist_d = Voo_d * time_d                                      # Horizontal distance covered during descent (m)
-    F_flow_d = SFC * (Pn_d / 1000)                               # Fuel flow during descent (kg/h)
-    F_used_d = (time_d / 3600) * F_flow_d                        # Fuel used during descent (kg)
-    GW_d = GW_f - F_used_d                                       # Remaining gross weight after descent (kg)
-    GW_h = GW_d - F_used_h                                       # Remaining gross weight after the next hover phase (kg)
+    power_rate_d = Pn_d / Pd * 100                      # Power rate during descent (%)
+    TAS_d = (ROD**2 + Voo**2)**0.5                      # True Airspeed during descent (m/s)
+    time_d = (height_f - height_d) / TAS_d              # Time required for descent (s)
+    dist_d = Voo_d * time_d                             # Horizontal distance covered during descent (m)
+    F_flow_d = SFC * (Pn_d / 1000)                      # Fuel flow during descent (kg/h)
+    F_used_d = (time_d / 3600) * F_flow_d               # Fuel used during descent (kg)
+    GW_d = GW_f - F_used_d                              # Remaining gross weight after descent (kg)
+    GW_h = GW_d - F_used_h                              # Remaining gross weight after the next hover phase (kg)
 
     # Forward flight 2
 
@@ -209,19 +209,19 @@ def Mission_profile(Helicopter, SFC, Pd, height_c, MTOW, Voo, Voo_d, height_h, t
     Omega_new, alpha_e_vec, dTc, U_P, dH_dpsi_0, dQ_dpsi_0,
     T_vec, Y_vec, Q_vec, dT_dr, dQ_dr, psi) = result_f2 
     
-    Vinf = Vinf_vec[-2]                                                                   # Assigned speed from speed vector (m/s)
-    time_f2 = dist_f2 / Vinf_vec[-1]                                                      # Second Cruising time (t)
-    Pn_f2 = P[-1]                                                                         # Required power (W)
-    power_rate_f2 = Pn_f2/Pd * 100                                                        # Power rate for cruise (%)
-    F_flow_f2 = SFC * (Pn_f/1000)                                                         # Fuel flow for second cruise (kg/h)
-    F_used_f2 = (time_f/3600) * F_flow_f2                                                 # Fuel used for second cruise (kg)
-    GW_f2 = GW_h - F_used_f2                                                              # Remaining gross weight after second cruise (Kg)
+    Vinf = Vinf_vec[-2]                                    # Assigned speed from speed vector (m/s)
+    time_f2 = dist_f2 / Vinf_vec[-1]                       # Second Cruising time (t)
+    Pn_f2 = P[-1]                                          # Required power (W)
+    power_rate_f2 = Pn_f2/Pd * 100                         # Power rate for cruise (%)
+    F_flow_f2 = SFC * (Pn_f/1000)                          # Fuel flow for second cruise (kg/h)
+    F_used_f2 = (time_f/3600) * F_flow_f2                  # Fuel used for second cruise (kg)
+    GW_f2 = GW_h - F_used_f2                               # Remaining gross weight after second cruise (Kg)
 
     # Output vectors
  
     climb_data = {
-            "Altitude": "To " + f"{round(height_c * meters_to_feet)}",   # Round the value to the nearest integer for better readability
-            "Speed ": round(TAS_c,1),                                    # Round the value to 1 decimal place for better readability
+            "Altitude": "To " + f"{round(height_c * meters_to_feet)}",   # Round to integer for readability
+            "Speed ": round(TAS_c,1),                                    # Round to 1 decimal for readability
             "Distance": round(dist_c * meters_to_nautical_miles,1),
             "Time": round(time_c),
             "Power Rating": "MCP",
