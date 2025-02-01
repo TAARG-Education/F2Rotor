@@ -153,18 +153,17 @@ def create_table_figure(climb_data, hover_data, forward_data, Descend_data, forw
 
     for row_idx, row in enumerate(rows):
         for col_idx, cell_value in enumerate(row):
-            # Converti solo i valori numerici in float e arrotondali a 1 decimale
+            
             try:
                 cell_value = round(float(cell_value), 1)
             except (ValueError, TypeError):
-                pass  # Se non è un numero, lo lascia invariato
+                pass
 
-            # Converte i valori in colonna 1 delle righe 3, 5, 6 in interi
             if col_idx == 1 and row_idx in [2, 4, 5]:
                 try:
-                    cell_value = int(float(cell_value))  # Converte in intero
+                    cell_value = int(float(cell_value))  
                 except (ValueError, TypeError):
-                    pass  # Se non è convertibile in intero, lo lascia invariato
+                    pass 
 
             if row_idx == 1 and col_idx == 1:
                 cell_value_with_note = f"{cell_value}\nγ = {round(gamma_deg)}°"
