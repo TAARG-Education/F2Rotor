@@ -28,6 +28,7 @@ from ambiance import Atmosphere
 import os 
 
 
+
 # utility functions
 def initialize_vars(z,geom,dx,J):
     # define atmoshpere
