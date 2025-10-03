@@ -44,7 +44,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d, splprep, splev, Akima1DInterpolator, interp, CubicSpline
+from scipy.interpolate import interp1d, splprep, splev, Akima1DInterpolator, make_interp_spline
 import pyvista as pv
 import os
 import pandas as pd
@@ -76,32 +76,19 @@ class Geometry():
         fc,fb,fs,fx,fz are all 1D interpolator generated when the Geometry class is defined. 
         They are used as tools for BEMT module (fc,fb,fs) and blade geometry generation (fx,fz)
         '''
-        if self.interp_kind == "linear":
-            self.fc = interp(self.r_R_known,self.c_R_known) 
-            self.fb = interp(self.r_R_known,self.beta_known)
-            self.fs = interp(self.r_R_known,self.sweep_known)
-            self.fx = interp(self.R*self.r_R_known,self.x)
-            self.fz = interp(self.R*self.r_R_known,self.z)
-        elif self.interp_kind == "cubic":
-            self.fc = CubicSpline(self.r_R_known,self.c_R_known) 
-            self.fb = CubicSpline(self.r_R_known,self.beta_known)
-            self.fs = CubicSpline(self.r_R_known,self.sweep_known)
-            self.fx = CubicSpline(self.R*self.r_R_known,self.x)
-            self.fz = CubicSpline(self.R*self.r_R_known,self.z)
+        if self.interp_kind == "linear" or self.interp_kind == "cubic":
+            self.fc = interp1d(self.r_R_known,self.c_R_known, kind=self.interp_kind, fill_value='none') 
+            self.fb = interp1d(self.r_R_known,self.beta_known, kind=self.interp_kind, fill_value='none')
+            self.fx = interp1d(self.R*self.r_R_known,self.x, kind=self.interp_kind, fill_value='none')
+            self.fz = interp1d(self.R*self.r_R_known,self.z, kind=self.interp_kind, fill_value='none')
         elif self.interp_kind == "akima":
             self.fc = Akima1DInterpolator(self.r_R_known,self.c_R_known) 
             self.fb = Akima1DInterpolator(self.r_R_known,self.beta_known)
             self.fs = Akima1DInterpolator(self.r_R_known,self.sweep_known)
-            self.fx = Akima1DInterpolator(self.R*self.r_R_known,self.x)
-            self.fz = Akima1DInterpolator(self.R*self.r_R_known,self.z)
+            #self.fx = Akima1DInterpolator(self.R*self.r_R_known,self.x)
+            #self.fz = Akima1DInterpolator(self.R*self.r_R_known,self.z)
         else:
-          print(r"Interpolation method not recongnised. You can choose between:\n -linear,piecewise linear interpolator\n -cubic,cubic spline \n-akima, Akima 1D interpolator")  
-        #self.fc = interp1d(self.r_R_known,self.c_R_known, kind=self.interp_kind, fill_value='none') 
-        #self.fb = interp1d(self.r_R_known,self.beta_known, kind=self.interp_kind, fill_value='none')
-        #self.fs = interp1d(self.r_R_known,self.sweep_known, kind=self.interp_kind, fill_value='none')
-        #self.fx = interp1d(self.R*self.r_R_known,self.x, kind=self.interp_kind, fill_value='none')
-        #self.fz = interp1d(self.R*self.r_R_known,self.z, kind=self.interp_kind, fill_value='none')
-
+            raise Exception("Interpolation method not recongnised. You can choose between:\n -linear,piecewise linear interpolator\n -cubic,cubic spline \n -akima, Akima 1D interpolator")
 
     def airfoil_dir(self):
 
