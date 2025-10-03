@@ -16,10 +16,10 @@
 #x Output variables:																		                                                                    x
 #x ct = thrust coefficient 																	                                                                    x
 #x cp = power coefficient																	                                                                    x
+#x NOTE: Version 1.5.0 supports swept blades, but only if aerodynamic method 1 is selected; otherwise, sweep effects will be ignored.                           x
+#x Authors: Daniele Di Somma, Emanuele Viglietti, A. D. Marotta														                                            x
 #x																				                                                                                x
-#x Authors: Daniele Di Somma, Emanuele Viglietti.														                                                        x
-#x																				                                                                                x
-#x Version: 1.4.0																		                                                                        x
+#x Version: 1.5.0																		                                                                        x
 #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 import numpy as np
@@ -54,7 +54,7 @@ def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
 
     beta = np.deg2rad(geom.fb(x))
     beta +=np.deg2rad(geom.pitch)
-        
+    sweep = np.deg2rad( geom.fs(x) )
     # evaluate chord at r/R station (multiply for R because the interpolation returns c/R)
     chord = geom.fc(x)
     Vr = np.sqrt(Vinf**2 + (omega*geom.R*x)**2)  # effective velocity
@@ -65,9 +65,9 @@ def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
 
     # evaluate Lift curve slope and Alpha zero Lift using aero class object.
     if aero.aero_method == 1 or aero.aero_method == 2:
-        cla = aero.aero_params['Cl_alpha']
+        cla = aero.aero_params['Cl_alpha']*np.cos( sweep )
         if aero.M_corr:
-            cla/=(1-(Vr/a_sound)**2)**0.5
+            cla/=(1-(Vr/a_sound*np.cos(sweep)**2)**0.5
         bo = aero.aero_params['alpha_0_lift']
     else: 
         cla, bo = aero.eval_lift_properties(x = x, M = Vr/a_sound)
@@ -75,10 +75,10 @@ def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
     # define beta with respect to zero-lift line
     beta -= bo
 
-    return sigma, chord, cla, Vr, phi, beta, bo
+    return sigma, chord, sweep, cla, Vr, phi, beta, bo
 
 
-def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature=True, thickness=True):
+def section_performance(x, dx, J, lam, sigma, chord, sweep, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature=True, thickness=True):
     '''
     This function allows the calculation of thrust and power coefficients for a given blade section adopting the momentum theory.
     Theory in McCormick, B. W., (1967), "Aerodynamics of V/STOL Flight", p. ...
@@ -94,9 +94,9 @@ def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, 
     - ct: thrust coefficient
     - cp: power coefficient
     
-    Authors: Daniele Di Somma, Emanuele Viglietti
-    Date: 24/05/2024
-    Version: 1.00
+    Authors: Daniele Di Somma, Emanuele Viglietti, A.D. Marotta
+    Date: 03/10/2025
+    Version: 1.10
     '''
     
     # curvature effect
@@ -119,7 +119,8 @@ def section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, 
     
     # calculate airfoil coefficients using aero class object
     if aero.aero_method == 1:
-        cl, cd = aero.clcd1(Re_ref =1e+6 ,Re =Vr*chord/ni ,M = Vr/a_sound,AoA=alpha)
+        # Corrections for sweep and compressibility are carried inside the function
+        cl, cd = aero.clcd1(Re_ref =1e+6 ,Re =Vr*chord/ni ,M = Vr/a_sound,AoA=alpha, WDcalc = True, sweep = sweep, toc = tmax_c)
     elif aero.aero_method == 2:
         cl,cd = aero.clcd2(Re_ref = 1e+6, Re = Vr*chord/ni, M = Vr/a_sound, AoA = alpha)
     else: 
@@ -184,8 +185,8 @@ def BEMT_timp(z,J,dx,geom,aero, curvature=True, thickness=True, hub_corr=True):
     - cp: power coefficient
     
     Authors: Daniele Di Somma, Emanuele Viglietti
-    Date: 24/05/2024
-    Version: 1.00
+    Date: 03/10/2025
+    Version: 1.10
     '''
     
     # initialize variables
@@ -205,7 +206,7 @@ def BEMT_timp(z,J,dx,geom,aero, curvature=True, thickness=True, hub_corr=True):
         wa = Vr*alpha_i*np.cos(phi+alpha_i)
         
         # evaluate section performance
-        delct, delcp= section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
+        delct, delcp= section_performance(x, dx, J, lam, sigma, chord, sweep, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
         ct += delct
         cp += delcp
     
@@ -236,8 +237,8 @@ def BEMT_tvorpd(z,J,dx,geom,aero,curvature=True, thickness=True, hub_corr=True):
     - cp: power coefficient
     
     Authors: Daniele Di Somma, Emanuele Viglietti
-    Date: 24/05/2024
-    Version: 1.00
+    Date: 03/10/2025
+    Version: 1.10
     '''
     
     # initialize variables
@@ -247,7 +248,7 @@ def BEMT_tvorpd(z,J,dx,geom,aero,curvature=True, thickness=True, hub_corr=True):
     cp, ct = 0.,0.
     for x in x_vec:
         # evaluate section characteristics
-        sigma, chord, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero)
+        sigma, chord, sweep, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero)
         
         # calculate alpha
         # calculate inflow angle at blade tip
@@ -269,7 +270,7 @@ def BEMT_tvorpd(z,J,dx,geom,aero,curvature=True, thickness=True, hub_corr=True):
         wa = Vr*alpha_i*np.cos(phi+alpha_i)
         
         # evaluate section performance 
-        delct, delcp = section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
+        delct, delcp = section_performance(x, dx, J, lam, sigma, chord, sweep, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
         ct += delct
         cp += delcp
     
@@ -299,8 +300,9 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=False, hub_corr=True):
     - cp: power coefficient
     
     Authors: Daniele Di Somma, Emanuele Viglietti
-    Date: 24/05/2024
-    Version: 1.00
+    Date: 03/10/2025
+    Version: 1.1089
+
     '''
     
     # initialize variables
@@ -379,7 +381,7 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=False, hub_corr=True):
         
         
         # evaluate section performance 
-        delct, delcp= section_performance(x, dx, J, lam, sigma, chord, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
+        delct, delcp= section_performance(x, dx, J, lam, sigma, chord, sweep, geom, aero, alpha_i, beta, bo, phi, Vinf, Vr, wa, wt, omega, ni, a_sound, curvature, thickness)
         ct += delct
         cp += delcp
         
