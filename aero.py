@@ -1,8 +1,8 @@
 #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 #x File: aero.py
-#x Authors: Ciro Cuozzo, Daniele Trincone
-#x Date: 28/05/2024
-#x Version: 1.03
+#x Authors: Ciro Cuozzo, Daniele Trincone, A.D. Marotta
+#x Date: 03/10/2025
+#x Version: 1.1
 #x 
 #x This code calculates the aerodynamic parameters of a chosen station on the blade through a Python class.
 #x Within the class there are functions capable of calculating the Cl_alpha, the alpha_zl, the Cl and the Cd for any 
@@ -155,7 +155,7 @@ class Aerodynamics():
             Mdd = self.aero_params['Ka']/math.cos(sweep) - toc/ math.cos(sweep)**2 - abs(lift_coeff)/( 10*math.cos(sweep) )     # Lift coefficient used here is the one of the equivalent profile, so no sweep^3 is needed
             Mcrit = Mdd - (0.1/80)**(1/3)
             if M > Mcrit:
-                dCd_wave = 20*( M_Mcrit )**4
+                dCd_wave = 20*( M-Mcrit )**4
         # Reynolds Number Correction 
         if self.Rey_corr:
             if Re < 1e+5:

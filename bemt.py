@@ -52,11 +52,11 @@ def initialize_vars(z,geom,dx,J):
 
 def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
 
-    beta = np.deg2rad(geom.fb(x))
+    beta = np.deg2rad(geom.twist_rspct_75(x))
     beta +=np.deg2rad(geom.pitch)
     sweep = np.deg2rad( geom.fs(x) )
     # evaluate chord at r/R station (multiply for R because the interpolation returns c/R)
-    chord = geom.fc(x)
+    chord = geom.fc(x)*geom.R
     Vr = np.sqrt(Vinf**2 + (omega*geom.R*x)**2)  # effective velocity
     phi = np.arctan(Vinf/(omega*geom.R*x))
     
@@ -67,7 +67,7 @@ def section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero):
     if aero.aero_method == 1 or aero.aero_method == 2:
         cla = aero.aero_params['Cl_alpha']*np.cos( sweep )
         if aero.M_corr:
-            cla/=(1-(Vr/a_sound*np.cos(sweep)**2)**0.5
+            cla/=( 1-(Vr/a_sound*np.cos(sweep)**2)**0.5 )
         bo = aero.aero_params['alpha_0_lift']
     else: 
         cla, bo = aero.eval_lift_properties(x = x, M = Vr/a_sound)
@@ -184,7 +184,7 @@ def BEMT_timp(z,J,dx,geom,aero, curvature=True, thickness=True, hub_corr=True):
     - ct: thrust coefficient
     - cp: power coefficient
     
-    Authors: Daniele Di Somma, Emanuele Viglietti
+    Authors: Daniele Di Somma, Emanuele Viglietti, A.D. Marotta
     Date: 03/10/2025
     Version: 1.10
     '''
@@ -196,7 +196,7 @@ def BEMT_timp(z,J,dx,geom,aero, curvature=True, thickness=True, hub_corr=True):
     cp, ct = 0.,0.
     for x in x_vec:
         # evaluate section characteristics
-        sigma, chord, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero)
+        sigma, chord, sweep, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero)
         
         # calculate alpha
         alpha_i = (0.5*np.sqrt((((lam/x)+((sigma*cla*Vr)/(8*Vt*x**2)))**2)+
@@ -236,7 +236,7 @@ def BEMT_tvorpd(z,J,dx,geom,aero,curvature=True, thickness=True, hub_corr=True):
     - ct: thrust coefficient
     - cp: power coefficient
     
-    Authors: Daniele Di Somma, Emanuele Viglietti
+    Authors: Daniele Di Somma, Emanuele Viglietti, A.D. Marotta
     Date: 03/10/2025
     Version: 1.10
     '''
@@ -299,9 +299,9 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=False, hub_corr=True):
     - ct: thrust coefficient
     - cp: power coefficient
     
-    Authors: Daniele Di Somma, Emanuele Viglietti
+    Authors: Daniele Di Somma, Emanuele Viglietti, A.D. Marotta
     Date: 03/10/2025
-    Version: 1.1089
+    Version: 1.1
 
     '''
     
@@ -312,7 +312,7 @@ def BEMT_tvor(z,J,dx,geom,aero,curvature=True, thickness=False, hub_corr=True):
     cp, ct = 0.,0.
     for x in x_vec:
         # evaluate section characteristics
-        sigma, chord, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero)
+        sigma, chord, sweep, cla, Vr, phi, beta, bo = section_characteristic(x,geom,Vinf,omega,ni,a_sound,aero)
         
         # calculate alpha
         # calculate inflow angle at blade tip
