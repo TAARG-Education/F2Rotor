@@ -17,6 +17,7 @@
 #x RPM              =   round per minute (int)                                                                                                                  x
 #x r_R_known        =   known adimensional RADIUS in ascending order (array)                                                                                    x
 #x c_R_known        =   known adimensional CHORDS in ascending order (array)                                                                                    x
+#x sweep_known      =   known sweep angle at quarter chord in deg (array)                                                                                       x
 #x beta_known       =   known TWIST in ascending order WITH RESPECT TO THE PROPELLER PLANE (array)                                                              x
 #x beta75           =   assigned nominal twist at 75% span (float)                                                                                              x
 #x pitch            =   blade aerodymanic pitch (float)															                                                x
@@ -37,14 +38,14 @@
 #x                                                                                                                                                              x
 #x	WARNING 3:  Open the working folder in your code editor for proper functioning.																			    x
 #x 																			                                                                                    x
-#x Author: Antonio Brunaccini.														                                                                            x
+#x Author: Antonio Brunaccini, A.D. Marotta.			                			                                                                            x
 #x																				                                                                                x
-#x Version: 1.1.0	FIXED STL GENERATION SINGULARITY, ADDED CHORD COMPUTATION FUNCTION																	        x
+#x Version: 1.2.0	Added sweep definition and initial implementation of akima interpolation type for non continous sweep                                       x
 #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d, splprep, splev
+from scipy.interpolate import interp1d, splprep, splev, Akima1DInterpolator, make_interp_spline
 import pyvista as pv
 import os
 import pandas as pd
@@ -53,14 +54,15 @@ from math import cos, sin, atan, pi, pow, sqrt, dist
 
 class Geometry():
 
-    def __init__(self, R, r_hub, N, RPM, r_R_known, c_R_known, beta_known, beta75, airfoil_known, pitch, kind):
+    def __init__(self, R, r_hub, N, RPM, r_R_known, c_R_known, beta_known, sweep_known, beta75,  airfoil_known, pitch, kind):
 
         self.R = R                                                             
         self.r_hub = r_hub                      
         self.N = N                              
         self.RPM = RPM                          
         self.r_R_known = r_R_known              
-        self.c_R_known = c_R_known              
+        self.c_R_known = c_R_known
+        self.sweep_known = sweep_known              
         self.beta_known = beta_known            
         self.beta75 = beta75                     
         self.airfoil_known =  airfoil_known     
@@ -71,14 +73,23 @@ class Geometry():
 
         '''
         Utility functions:
-        fc,fb,fx,fz are all 1D interpolator generated when the Geometry class is defined. 
-        They are used as tools for BEMT module (fc,fb) and blade geometry generation (fx,fz)
+        fc,fb,fs,fx,fz are all 1D interpolator generated when the Geometry class is defined. 
+        They are used as tools for BEMT module (fc,fb,fs) and blade geometry generation (fx,fz)
         '''
-        self.fc = interp1d(self.r_R_known,self.c_R_known, kind=self.interp_kind, fill_value='none') 
-        self.fb = interp1d(self.r_R_known,self.beta_known, kind=self.interp_kind, fill_value='none')
-        self.fx = interp1d(self.R*self.r_R_known,self.x, kind=self.interp_kind, fill_value='none')
-        self.fz = interp1d(self.R*self.r_R_known,self.z, kind=self.interp_kind, fill_value='none')
-
+        if self.interp_kind == "linear" or self.interp_kind == "cubic":
+            self.fc = interp1d(self.r_R_known,self.c_R_known, kind=self.interp_kind, fill_value='none') 
+            self.fb = interp1d(self.r_R_known,self.beta_known, kind=self.interp_kind, fill_value='none')
+            self.fs = interp1d(self.r_R_known,self.sweep_known, kind=self.interp_kind, fill_value='none')
+            self.fx = interp1d(self.R*self.r_R_known,self.x, kind=self.interp_kind, fill_value='none')
+            self.fz = interp1d(self.R*self.r_R_known,self.z, kind=self.interp_kind, fill_value='none')
+        elif self.interp_kind == "akima":
+            self.fc = Akima1DInterpolator(self.r_R_known,self.c_R_known) 
+            self.fb = Akima1DInterpolator(self.r_R_known,self.beta_known)
+            self.fs = Akima1DInterpolator(self.r_R_known,self.sweep_known)
+            #self.fx = Akima1DInterpolator(self.R*self.r_R_known,self.x)
+            #self.fz = Akima1DInterpolator(self.R*self.r_R_known,self.z)
+        else:
+            raise Exception("Interpolation method not recongnised. You can choose between:\n -linear,piecewise linear interpolator\n -cubic,cubic spline \n -akima, Akima 1D interpolator")
 
     def airfoil_dir(self):
 
@@ -148,7 +159,7 @@ class Geometry():
                     AF = self.adapt_AF_points(AF, n)                                                # and adapt it to n points (for generating the blade the code needs the same number of elements for each airfoil)
 
 
-            AF = self.AF_scale(AF,self.R*self.c_R_known[i])                                         # scale the airfoil 
+            AF = self.AF_scale(AF,self.R*self.c_R_known[i])                                       # scale the airfoil 
             AF = self.AF_trasl(AF)                                                                  # translate the airfoil 
             AF = self.AF_rot(AF,self.beta_known[i])                                                 # rotate the airfoil 
 
@@ -188,26 +199,27 @@ class Geometry():
         return chord
     
 
-    def twist_rspct_75(self):
+    def twist_rspct_75(self,x = -1):
         '''
         This function returns the twist distribution for a given beta75 for an arbitrary beta distribution.
         
 
         input variables: 
         - beta75: internally declared
-        
+        - x: (optional) nondimensional position along the blade. If not passed as input, the function returns a list.
         output:
         - beta_known_sign: twist distribution with respect to adim radius and given blade nominal twist 
         
-        Author: Antonio Brunaccini
-        Date: 19/05/2024
-        Version: 1.00
+        Author: Antonio Brunaccini, A.D. Marotta
+        Date: 03/10/2025
+        Version: 1.1
         '''
-
-        beta75_star = self.fb(0.75)                                     # interpolate the 75% value of beta according to arbitrary beta_known array input
-        beta_known_sign_zero = self.beta_known - beta75_star            # translate beta_known to obtain a twist angle of the 75% section equal to zero
-        beta_known_sign = beta_known_sign_zero + self.beta75            # translate again to obtain the twist distribution according to nominal twist input beta75
-
+        if x == -1:
+            beta75_star = self.fb(0.75)                                     # interpolate the 75% value of beta according to arbitrary beta_known array input
+            beta_known_sign_zero = self.beta_known - beta75_star            # translate beta_known to obtain a twist angle of the 75% section equal to zero
+            beta_known_sign = beta_known_sign_zero + self.beta75            # translate again to obtain the twist distribution according to nominal twist input beta75
+        else:
+            beta_known_sign = self.fb(x) - self.fb(0.75) + self.beta75
         return beta_known_sign                                          # return the required twist distribution
     
     

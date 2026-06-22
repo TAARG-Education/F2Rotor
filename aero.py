@@ -1,8 +1,8 @@
 #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 #x File: aero.py
-#x Authors: Ciro Cuozzo, Daniele Trincone
-#x Date: 28/05/2024
-#x Version: 1.03
+#x Authors: Ciro Cuozzo, Daniele Trincone, A.D. Marotta
+#x Date: 03/10/2025
+#x Version: 1.1
 #x 
 #x This code calculates the aerodynamic parameters of a chosen station on the blade through a Python class.
 #x Within the class there are functions capable of calculating the Cl_alpha, the alpha_zl, the Cl and the Cd for any 
@@ -123,38 +123,57 @@ class Aerodynamics():
             Cl_alpha /= (1-M**2)**0.5                              # Mach number correction
         return np.rad2deg(Cl_alpha), np.deg2rad(alpha_0_lift)      # Cl_alpha in 1/rad, alpha_0_lift in rad    
     
-    def clcd1(self, AoA, Re_ref, Re, M):
+    def clcd1(self, AoA, Re_ref, Re, M, WDcalc = True, sweep = 0, toc = 0.1):
         '''
         This function evaluates lift coefficient and drag coefficient using the aerodynamics method '1'. 
         Further details in the aerodynamics class.
 
         Input:
-        - AoA: Section angle of attack (rad);
-        - Re_ref: Reference Reynolds number;
-        - Re: Reynolds number;
-        - M: Mach number;
-        
+        - AoA:      Section angle of attack [rad];
+        - Re_ref:   Reference Reynolds number;
+        - Re:       Reynolds number;
+        - M:        Mach number;
+        - WDcalc:   if True the funcction calculates the wave drag
+        - sweep:    sweep at quarter chord line [rad]
+        - toc:      section maximum thickness as % of the chord
         Output:
         - lift_coeff: Section lift coefficient
         - drag_coeff: Section drag coefficient
         
-        Authors: Ciro Cuozzo, Daniele Trincone
-        Date: 28/05/2024
-        Version: 1.03
+        Authors: Ciro Cuozzo, Daniele Trincone, A.D. Marotta
+        Date: 03/10/2025
+        Version: 1.1
         '''
-        lift_coeff = min(self.aero_params['Cl_alpha']*(AoA - self.aero_params['alpha_0_lift'])/math.sqrt(1-M**2), self.aero_params['Cl_max'])    # Positive Stall at Cl = Cl_max    
-        lift_coeff = max(lift_coeff, self.aero_params['Cl_min'])       # Negative Stall at Cl = Cl_min
-        drag_coeff = self.aero_params['Cd']                                        # Default Cd
-        if Re < 1e+5:
-            f = -0.4                                    # Empirical factor for Reynolds number correction
-        elif Re >= 1e+5 and Re < 1e+6:
-            f = -1
-        else:
-            f = -0.15
+        # Lift Cofficient of the equivalent subsonic profile parallel to the quarter chord line
+        lift_coeff = min(self.aero_params['Cl_alpha']*(AoA - self.aero_params['alpha_0_lift']), self.aero_params['Cl_max'])     # Positive Stall at Cl = Cl_max    
+        lift_coeff = max(lift_coeff, self.aero_params['Cl_min'])                                                                # Negative Stall at Cl = Cl_min
+        drag_coeff = self.aero_params['Cd']                                                                                     # Default Cd
+        # Wave drag calculation according to Korn Empirical Formula                                                                                   
+        dCd_wave = 0                                    
+        if WDcalc:
+            
+            Mdd = self.aero_params['Ka']/math.cos(sweep) - toc/ math.cos(sweep)**2 - abs(lift_coeff)/( 10*math.cos(sweep) )     # Lift coefficient used here is the one of the equivalent profile, so no sweep^3 is needed
+            Mcrit = Mdd - (0.1/80)**(1/3)
+            if M > Mcrit:
+                dCd_wave = 20*( M-Mcrit )**4
+        # Reynolds Number Correction 
         if self.Rey_corr:
-            drag_coeff *= (Re/Re_ref)**f                # Empirical Reynolds number correction
+            if Re < 1e+5:
+                f = -0.4                                                                                                        # Empirical factor for Reynolds number correction
+            elif Re >= 1e+5 and Re < 1e+6:
+                f = -1
+            else:
+                f = -0.15
+            drag_coeff *= (Re/Re_ref)**f                                                                                        # Empirical Reynolds number correction
+        drag_coeff += dCd_wave
         if self.M_corr:
-            lift_coeff /=  math.sqrt(1-M**2)            # Prandtl Glauert correction
+            '''
+            The maximum lift coefficient is capped at Cl_max, and reduced due to sweep to prevent unrealistic increases in Cl 
+            with Mach number from the Prandtl-Glauert correction.
+            '''
+            lift_coeff = min(lift_coeff/( 1-( M*math.cos(sweep) )**2 ), self.aero_params['Cl_max'])*math.cos(sweep)                                                                    # Prandtl Glauert correction
+        else:
+            lift_coeff*= math.cos(sweep)
         return lift_coeff, drag_coeff
     
     def clcd2(self, AoA, Re_ref, Re, M):
@@ -176,11 +195,11 @@ class Aerodynamics():
         Date: 28/05/2024
         Version: 1.03
         '''
-        CDMSTALL  =  0.1000
+        CDMSTALL  = 0.1000
         CDMFACTOR = 10.0
-        CLMFACTOR =  0.25
-        MEXP      =  3.0
-        CDMDD     =  0.0020
+        CLMFACTOR = 0.25
+        MEXP      = 3.0
+        CDMDD     = 0.0020
         PG = 1/math.sqrt(1-M**2)
         lift_coeff = self.aero_params['Cl_alpha'] * (AoA - self.aero_params['alpha_0_lift'])
         if self.M_corr:
@@ -357,6 +376,7 @@ xrot_params = {
     'dCd_dCl2': 0.004,
     'Mach_crit': 0.8,
     'Re_scaling_exp': -0.4
+    'Ka':0.87
 }
 if aero_method == 'xFoil':              'xfoil.exe' must be in the same folder as the main!!
     alpha_vec_xFoil = np.arange(-25,25,1)
